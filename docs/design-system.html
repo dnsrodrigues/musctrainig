@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MUSCTRAINIG — Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════════
+       TOKENS — a fonte da verdade de todo o design
+    ═══════════════════════════════════════════════ */
+    :root {
+      /* Superfícies */
+      --bg:           #0c0c0c;
+      --surface:      #161616;
+      --surface-2:    #1f1f1f;
+      --surface-3:    #272727;
+
+      /* Bordas */
+      --border:       rgba(255,255,255,0.07);
+      --border-md:    rgba(255,255,255,0.12);
+      --border-strong:rgba(255,255,255,0.18);
+
+      /* Primária — Ember */
+      --orange:       #f97316;
+      --orange-dark:  #ea6b10;
+      --orange-light: #fb923c;
+      --orange-muted: rgba(249,115,22,0.12);
+      --orange-glow:  rgba(249,115,22,0.22);
+
+      /* Estado */
+      --success:      #22c55e;
+      --success-muted:rgba(34,197,94,0.12);
+      --danger:       #ef4444;
+      --danger-muted: rgba(239,68,68,0.12);
+      --warning:      #f59e0b;
+      --warning-muted:rgba(245,158,11,0.12);
+      --info:         #3b82f6;
+
+      /* Texto */
+      --text:         #f0f0f0;
+      --text-2:       #9ca3af;
+      --text-3:       #4b5563;
+
+      /* Tipografia */
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+
+      /* Raios */
+      --r-xs: 6px;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 20px;
+      --r-2xl:24px;
+
+      /* Sombras */
+      --shadow-card:  0 2px 12px rgba(0,0,0,0.45);
+      --shadow-orange:0 4px 20px rgba(249,115,22,0.28);
+      --shadow-float: 0 16px 48px rgba(0,0,0,0.6);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Grão de textura — quase invisível, mas adiciona profundidade */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ═══════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════ */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 210px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: var(--orange);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 10px;
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-top: 3px;
+    }
+
+    .sidebar-nav { padding: 16px 10px; flex: 1; }
+
+    .nav-group-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 12px 10px 6px;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 7px 10px;
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-link:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+    .nav-link.active { color: var(--orange); background: var(--orange-muted); font-weight: 600; }
+
+    /* Main */
+    .main {
+      flex: 1;
+      padding: 48px 56px 96px;
+      max-width: 960px;
+    }
+
+    /* Seções */
+    .section { margin-bottom: 80px; scroll-margin-top: 32px; }
+
+    .section-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 38px;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+
+    .section-desc { color: var(--text-2); font-size: 14px; max-width: 560px; }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 32px 0;
+    }
+
+    /* Demo box */
+    .demo {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 28px;
+      margin-bottom: 12px;
+    }
+
+    .demo-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .demo-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ═══════════════════════════════════════════════
+       01 — PALETA DE CORES
+    ═══════════════════════════════════════════════ */
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+      gap: 12px;
+    }
+
+    .swatch { display: flex; flex-direction: column; gap: 8px; }
+
+    .swatch-block {
+      height: 56px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      transition: transform 0.15s;
+    }
+
+    .swatch-block:hover { transform: scale(1.04); }
+    .swatch-name { font-size: 11px; font-weight: 600; color: var(--text-2); }
+    .swatch-hex { font-size: 10px; color: var(--text-3); font-family: monospace; }
+
+    /* ═══════════════════════════════════════════════
+       02 — TIPOGRAFIA
+    ═══════════════════════════════════════════════ */
+    .type-row {
+      display: flex;
+      align-items: baseline;
+      gap: 28px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .type-row:last-child { border-bottom: none; }
+
+    .type-meta { min-width: 130px; flex-shrink: 0; }
+    .type-meta-name { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+    .type-meta-spec { font-size: 10px; color: var(--text-3); margin-top: 2px; font-family: monospace; }
+
+    /* ═══════════════════════════════════════════════
+       03 — BOTÕES
+    ═══════════════════════════════════════════════ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: var(--r-md);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-sm  { font-size: 13px; padding: 0 14px; height: 32px; border-radius: var(--r-sm); }
+    .btn-md  { font-size: 14px; padding: 0 18px; height: 40px; }
+    .btn-lg  { font-size: 15px; padding: 0 24px; height: 48px; border-radius: var(--r-lg); }
+
+    .btn-primary { background: var(--orange); color: white; }
+    .btn-primary:hover { background: var(--orange-dark); transform: translateY(-1px); box-shadow: var(--shadow-orange); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      border: 1px solid var(--border-md);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.12); border-color: var(--border-strong); }
+
+    .btn-ghost { background: transparent; color: var(--text-2); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
+
+    .btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 20px; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════
+       04 — INPUTS
+    ═══════════════════════════════════════════════ */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .field-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #d1d5db;
+    }
+
+    .field-input {
+      height: 44px;
+      padding: 0 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-md);
+      border-radius: var(--r-md);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      transition: all 0.15s;
+      width: 100%;
+      appearance: none;
+    }
+
+    .field-input::placeholder { color: var(--text-3); }
+    .field-input:hover { border-color: rgba(255,255,255,0.2); }
+    .field-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-muted); }
+    .field-input.has-error { border-color: var(--danger); }
+    .field-input.has-error:focus { box-shadow: 0 0 0 3px var(--danger-muted); }
+
+    textarea.field-input { height: auto; padding: 12px 14px; resize: vertical; }
+
+    .field-hint { font-size: 12px; color: var(--text-3); }
+    .field-error { font-size: 12px; color: #f87171; display: flex; align-items: center; gap: 4px; }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       05 — CARDS
+    ═══════════════════════════════════════════════ */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-accent {
+      border-left: 3px solid var(--orange);
+      padding-left: 17px;
+    }
+
+    .card-glow {
+      border-color: rgba(249,115,22,0.22);
+      box-shadow: 0 0 0 1px rgba(249,115,22,0.08), 0 4px 24px rgba(249,115,22,0.1);
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .card-body { color: var(--text-2); font-size: 13px; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    .metric-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 16px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .metric-unit {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-3);
+      margin-left: 3px;
+    }
+
+    .metric-trend {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .metric-trend.up { color: var(--success); }
+    .metric-trend.down { color: var(--danger); }
+
+    /* ═══════════════════════════════════════════════
+       06 — AVATAR
+    ═══════════════════════════════════════════════ */
+    .avatar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 900;
+      color: white;
+      background: var(--orange);
+      flex-shrink: 0;
+      letter-spacing: 0.04em;
+      border-radius: var(--r-md);
+    }
+
+    .avatar-xs  { width: 28px;  height: 28px;  font-size: 10px; border-radius: var(--r-xs); }
+    .avatar-sm  { width: 36px;  height: 36px;  font-size: 13px; border-radius: var(--r-sm); }
+    .avatar-md  { width: 48px;  height: 48px;  font-size: 16px; border-radius: var(--r-md); }
+    .avatar-lg  { width: 64px;  height: 64px;  font-size: 22px; border-radius: var(--r-lg); }
+    .avatar-xl  { width: 88px;  height: 88px;  font-size: 30px; border-radius: var(--r-xl); }
+
+    .avatar-gradient { background: linear-gradient(135deg, #f97316 0%, #dc2626 100%); }
+
+    .avatar-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+
+    /* ═══════════════════════════════════════════════
+       07 — BADGES & TAGS
+    ═══════════════════════════════════════════════ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Roles */
+    .badge-admin    { background: var(--orange-muted);    color: var(--orange-light); border-color: rgba(249,115,22,0.2); }
+    .badge-aluno    { background: rgba(255,255,255,0.07); color: var(--text-2);       border-color: var(--border-md); }
+
+    /* Status */
+    .badge-active   { background: var(--success-muted);  color: #4ade80;  border-color: rgba(34,197,94,0.2); }
+    .badge-inactive { background: var(--danger-muted);   color: #f87171;  border-color: rgba(239,68,68,0.2); }
+
+    /* Dificuldade */
+    .badge-easy     { background: var(--success-muted);  color: #4ade80;  border-color: rgba(34,197,94,0.2); }
+    .badge-medium   { background: var(--warning-muted);  color: #fbbf24;  border-color: rgba(245,158,11,0.2); }
+    .badge-hard     { background: var(--orange-muted);   color: var(--orange-light); border-color: rgba(249,115,22,0.2); }
+    .badge-terrible { background: var(--danger-muted);   color: #f87171;  border-color: rgba(239,68,68,0.2); }
+
+    /* Músculo */
+    .badge-muscle   { background: rgba(59,130,246,0.1);  color: #93c5fd;  border-color: rgba(59,130,246,0.2); font-size: 11px; padding: 3px 8px; }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
+
+    /* ═══════════════════════════════════════════════
+       08 — NAVEGAÇÃO (mobile frame)
+    ═══════════════════════════════════════════════ */
+    .frames-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .phone {
+      width: 300px;
+      flex-shrink: 0;
+      border-radius: 40px;
+      border: 2px solid var(--border-md);
+      overflow: hidden;
+      background: var(--bg);
+      box-shadow: var(--shadow-float);
+      position: relative;
+    }
+
+    .phone-notch {
+      width: 90px; height: 24px;
+      background: var(--surface);
+      border-radius: 0 0 16px 16px;
+      margin: 0 auto;
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      z-index: 2;
+    }
+
+    .phone-screen {
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+      padding-top: 30px;
+    }
+
+    .app-header {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .app-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-header-icon {
+      width: 26px; height: 26px;
+      background: var(--orange);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+
+    .app-header-title {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+    }
+
+    .app-scroll {
+      flex: 1;
+      overflow: hidden;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Dashboard mockup content */
+    .dash-hero {
+      background: linear-gradient(135deg, #1a0800 0%, #161616 55%);
+      border-radius: var(--r-lg);
+      padding: 14px;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dash-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg, transparent, transparent 14px,
+        rgba(249,115,22,0.04) 14px, rgba(249,115,22,0.04) 15px
+      );
+    }
+
+    .dash-hero-inner { position: relative; }
+
+    .dash-greeting { font-size: 10px; color: var(--text-3); font-weight: 500; }
+    .dash-name {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 22px;
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .dash-streak {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .streak-pill {
+      background: var(--orange-muted);
+      color: var(--orange);
+      border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .dash-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .dash-stat {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 8px;
+      text-align: center;
+    }
+
+    .dash-stat-num {
+      font-family: var(--font-display);
+      font-weight: 900;
+      font-size: 20px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .dash-stat-lbl {
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    .dash-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .dash-workout-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--orange);
+      border-radius: var(--r-md);
+      padding: 9px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dash-workout-icon {
+      width: 30px; height: 30px;
+      background: var(--orange-muted);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .dash-workout-name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .dash-workout-meta { font-size: 9px; color: var(--text-3); }
+
+    .dash-workout-arrow {
+      margin-left: auto;
+      color: var(--text-3);
+      font-size: 12px;
+    }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 8px 4px 14px;
+      flex-shrink: 0;
+    }
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 5px;
+      cursor: pointer;
+      position: relative;
+      border-radius: var(--r-sm);
+      transition: all 0.15s;
+    }
+
+    .tab-item:hover { background: rgba(255,255,255,0.04); }
+
+    .tab-icon { font-size: 18px; line-height: 1; opacity: 0.4; transition: opacity 0.15s; }
+    .tab-label { font-size: 9px; font-weight: 600; color: var(--text-3); letter-spacing: 0.04em; }
+
+    .tab-item.active .tab-icon { opacity: 1; }
+    .tab-item.active .tab-label { color: var(--orange); }
+
+    .tab-dot {
+      width: 4px; height: 4px;
+      background: var(--orange);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0; left: 50%; transform: translateX(-50%);
+    }
+
+    /* ═══════════════════════════════════════════════
+       09 — FEEDBACK
+    ═══════════════════════════════════════════════ */
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      margin-bottom: 10px;
+    }
+
+    .alert-icon { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+
+    .alert-success { background: var(--success-muted); color: #4ade80; border-color: rgba(34,197,94,0.2); }
+    .alert-error   { background: var(--danger-muted);  color: #f87171; border-color: rgba(239,68,68,0.2); }
+    .alert-warning { background: var(--warning-muted); color: #fbbf24; border-color: rgba(245,158,11,0.2); }
+    .alert-info    { background: rgba(59,130,246,0.1); color: #93c5fd; border-color: rgba(59,130,246,0.2); }
+
+    /* Skeleton */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface-3) 50%, var(--surface) 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.6s infinite;
+      border-radius: var(--r-md);
+    }
+
+    .skeleton-text  { height: 14px; margin-bottom: 8px; }
+    .skeleton-title { height: 24px; width: 60%; margin-bottom: 16px; }
+    .skeleton-card  { height: 80px; }
+
+    /* ═══════════════════════════════════════════════
+       10 — LAYOUT BASE
+    ═══════════════════════════════════════════════ */
+    .layout-diagram {
+      background: var(--surface-2);
+      border: 1px dashed var(--border-md);
+      border-radius: var(--r-md);
+      padding: 12px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    /* ═══════════════════════════════════════════════
+       UTILITÁRIOS
+    ═══════════════════════════════════════════════ */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .gap-4  { gap: 4px; }
+    .gap-8  { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .gap-24 { gap: 24px; }
+    .flex-wrap { flex-wrap: wrap; }
+    .mt-4  { margin-top: 4px; }
+    .mt-8  { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mb-8  { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-24 { margin-bottom: 24px; }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11px; }
+    .text-muted { color: var(--text-2); }
+    .text-orange { color: var(--orange); }
+    .fw-600 { font-weight: 600; }
+    .fw-700 { font-weight: 700; }
+    .w-full { width: 100%; }
+
+    /* Headline decorativa */
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      margin-bottom: 6px;
+    }
+
+    .page-title span { color: var(--orange); }
+
+    .page-subtitle {
+      color: var(--text-2);
+      font-size: 15px;
+      max-width: 480px;
+      margin-bottom: 48px;
+    }
+
+    /* Token table */
+    .token-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .token-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .token-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-2); }
+    .token-table tr:last-child td { border-bottom: none; }
+    .token-table code {
+      font-family: monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-light);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 24px 20px 80px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+      .frames-row { justify-content: center; }
+      .page-title { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🏋️</div>
+      <div class="brand-name">MUSCTRAINIG</div>
+      <div class="brand-sub">Design System v1.0</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-group-label">Fundação</div>
+      <a href="#colors"     class="nav-link active">01 — Cores</a>
+      <a href="#typography" class="nav-link">02 — Tipografia</a>
+      <a href="#tokens"     class="nav-link">03 — Tokens</a>
+
+      <div class="nav-group-label">Componentes</div>
+      <a href="#buttons"    class="nav-link">04 — Botões</a>
+      <a href="#inputs"     class="nav-link">05 — Inputs</a>
+      <a href="#cards"      class="nav-link">06 — Cards</a>
+      <a href="#avatar"     class="nav-link">07 — Avatar</a>
+      <a href="#badges"     class="nav-link">08 — Badges</a>
+
+      <div class="nav-group-label">Padrões</div>
+      <a href="#navigation" class="nav-link">09 — Navegação</a>
+      <a href="#feedback"   class="nav-link">10 — Feedback</a>
+      <a href="#layout"     class="nav-link">11 — Layout</a>
+      <a href="#mockup"     class="nav-link">12 — Mockup</a>
+    </nav>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div style="margin-bottom: 64px;">
+      <p class="section-eyebrow">Iron &amp; Ember</p>
+      <h1 class="page-title">Design<br/><span>System</span></h1>
+      <p class="page-subtitle">
+        Referência visual completa do MUSCTRAINIG. Cada componente, token e padrão
+        de interface documentado — para garantir consistência em todas as telas.
+      </p>
+    </div>
+
+    <!-- ═══ 01 CORES ═══ -->
+    <section class="section" id="colors">
+      <div class="section-eyebrow">01</div>
+      <h2 class="section-title">Paleta de Cores</h2>
+      <p class="section-desc">Dark mode exclusivo. Laranja como única cor de acento — todo o restante é neutro.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Superfícies</div>
+        <div class="color-grid">
+          <div class="swatch">
+            <div class="swatch-block" style="background:#0c0c0c;"></div>
+            <div class="swatch-name">Background</div>
+            <div class="swatch-hex">#0c0c0c</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#161616;"></div>
+            <div class="swatch-name">Surface</div>
+            <div class="swatch-hex">#161616</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#1f1f1f;"></div>
+            <div class="swatch-name">Surface 2</div>
+            <div class="swatch-hex">#1f1f1f</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#272727;"></div>
+            <div class="swatch-name">Surface 3</div>
+            <div class="swatch-hex">#272727</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);"></div>
+            <div class="swatch-name">Border</div>
+            <div class="swatch-hex">white/7%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Primária — Ember</div>
+        <div class="color-grid">
+          <div class="swatch">
+            <div class="swatch-block" style="background:#fb923c;"></div>
+            <div class="swatch-name">Light</div>
+            <div class="swatch-hex">#fb923c</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#f97316; box-shadow: 0 4px 20px rgba(249,115,22,0.4);"></div>
+            <div class="swatch-name">Primary ★</div>
+            <div class="swatch-hex">#f97316</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#ea6b10;"></div>
+            <div class="swatch-name">Dark</div>
+            <div class="swatch-hex">#ea6b10</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.2);"></div>
+            <div class="swatch-name">Muted</div>
+            <div class="swatch-hex">orange/12%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Estado</div>
+        <div class="color-grid">
+          <div class="swatch">
+            <div class="swatch-block" style="background:#22c55e;"></div>
+            <div class="swatch-name">Sucesso</div>
+            <div class="swatch-hex">#22c55e</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#ef4444;"></div>
+            <div class="swatch-name">Erro</div>
+            <div class="swatch-hex">#ef4444</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#f59e0b;"></div>
+            <div class="swatch-name">Aviso</div>
+            <div class="swatch-hex">#f59e0b</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#3b82f6;"></div>
+            <div class="swatch-name">Info</div>
+            <div class="swatch-hex">#3b82f6</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Texto</div>
+        <div class="color-grid">
+          <div class="swatch">
+            <div class="swatch-block" style="background:#f0f0f0;"></div>
+            <div class="swatch-name">Primário</div>
+            <div class="swatch-hex">#f0f0f0</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#9ca3af;"></div>
+            <div class="swatch-name">Secundário</div>
+            <div class="swatch-hex">#9ca3af</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-block" style="background:#4b5563;"></div>
+            <div class="swatch-name">Muted</div>
+            <div class="swatch-hex">#4b5563</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 02 TIPOGRAFIA ═══ -->
+    <section class="section" id="typography">
+      <div class="section-eyebrow">02</div>
+      <h2 class="section-title">Tipografia</h2>
+      <p class="section-desc">
+        <strong style="color:var(--text)">Barlow Condensed</strong> para tudo que precisa de impacto — títulos, números, labels de seção.
+        <strong style="color:var(--text)">DM Sans</strong> para texto corrido, formulários e corpo.
+      </p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Display — Barlow Condensed</div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Display XL</div>
+            <div class="type-meta-spec">900 · 56px · -0.02em</div>
+          </div>
+          <div style="font-family:var(--font-display); font-size:56px; font-weight:900; letter-spacing:-0.02em; line-height:1;">
+            TREINO A
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Display L</div>
+            <div class="type-meta-spec">900 · 40px · -0.01em</div>
+          </div>
+          <div style="font-family:var(--font-display); font-size:40px; font-weight:900; letter-spacing:-0.01em; line-height:1.1;">
+            Peito &amp; Tríceps
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Heading</div>
+            <div class="type-meta-spec">800 · 28px</div>
+          </div>
+          <div style="font-family:var(--font-display); font-size:28px; font-weight:800; line-height:1.1;">
+            Supino Reto
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Subheading</div>
+            <div class="type-meta-spec">700 · 20px</div>
+          </div>
+          <div style="font-family:var(--font-display); font-size:20px; font-weight:700;">
+            4 séries × 12 reps
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Metric</div>
+            <div class="type-meta-spec">900 · 48px · tabular</div>
+          </div>
+          <div style="font-family:var(--font-display); font-size:48px; font-weight:900; line-height:1; color:var(--orange);">
+            85<span style="font-size:22px; color:var(--text-3); margin-left:4px; font-weight:600;">kg</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Body — DM Sans</div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Body LG</div>
+            <div class="type-meta-spec">400 · 16px · 1.7</div>
+          </div>
+          <div style="font-size:16px; line-height:1.7; color:var(--text-2);">
+            Registre seus treinos e acompanhe sua evolução ao longo do tempo.
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Body</div>
+            <div class="type-meta-spec">400 · 14px · 1.6</div>
+          </div>
+          <div style="font-size:14px; line-height:1.6; color:var(--text-2);">
+            O personal trainer pode criar fichas personalizadas para cada aluno.
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Body SM</div>
+            <div class="type-meta-spec">400 · 13px</div>
+          </div>
+          <div style="font-size:13px; color:var(--text-2);">
+            Última atualização: 22 de maio de 2026
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Label</div>
+            <div class="type-meta-spec">600 · 13px</div>
+          </div>
+          <div style="font-size:13px; font-weight:600;">
+            Nome completo
+          </div>
+        </div>
+
+        <div class="type-row">
+          <div class="type-meta">
+            <div class="type-meta-name">Caption</div>
+            <div class="type-meta-spec">700 · 10px · 0.14em</div>
+          </div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-3);">
+            DADOS FÍSICOS
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 03 TOKENS ═══ -->
+    <section class="section" id="tokens">
+      <div class="section-eyebrow">03</div>
+      <h2 class="section-title">Tokens CSS</h2>
+      <p class="section-desc">Variáveis CSS que governam todo o design. Nunca hardcode valores — sempre use os tokens.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <table class="token-table">
+          <thead>
+            <tr>
+              <th>Token</th>
+              <th>Valor</th>
+              <th>Uso</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>--bg</code></td><td>#0c0c0c</td><td>Fundo de todas as páginas</td></tr>
+            <tr><td><code>--surface</code></td><td>#161616</td><td>Cards, modais, sidebar</td></tr>
+            <tr><td><code>--surface-2</code></td><td>#1f1f1f</td><td>Cards aninhados, inputs</td></tr>
+            <tr><td><code>--orange</code></td><td>#f97316</td><td>CTA principal, destaques</td></tr>
+            <tr><td><code>--orange-muted</code></td><td>orange/12%</td><td>Badges, fundos de destaque</td></tr>
+            <tr><td><code>--text</code></td><td>#f0f0f0</td><td>Texto principal</td></tr>
+            <tr><td><code>--text-2</code></td><td>#9ca3af</td><td>Texto secundário</td></tr>
+            <tr><td><code>--text-3</code></td><td>#4b5563</td><td>Texto muted, hints, labels</td></tr>
+            <tr><td><code>--border</code></td><td>white/7%</td><td>Bordas padrão de cards</td></tr>
+            <tr><td><code>--r-md</code></td><td>12px</td><td>Raio padrão de inputs e botões</td></tr>
+            <tr><td><code>--r-xl</code></td><td>20px</td><td>Raio de cards principais</td></tr>
+            <tr><td><code>--font-display</code></td><td>Barlow Condensed</td><td>Títulos, métricas, labels de seção</td></tr>
+            <tr><td><code>--font-body</code></td><td>DM Sans</td><td>Corpo, formulários, botões</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══ 04 BOTÕES ═══ -->
+    <section class="section" id="buttons">
+      <div class="section-eyebrow">04</div>
+      <h2 class="section-title">Botões</h2>
+      <p class="section-desc">4 variantes × 3 tamanhos. Sempre use o primário para a ação principal da tela.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Variantes</div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-md">Primary</button>
+          <button class="btn btn-secondary btn-md">Secondary</button>
+          <button class="btn btn-ghost btn-md">Ghost</button>
+          <button class="btn btn-danger btn-md">Danger</button>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Tamanhos — Primary</div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm">Small</button>
+          <button class="btn btn-primary btn-md">Medium</button>
+          <button class="btn btn-primary btn-lg">Large</button>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Estados especiais</div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-md" disabled>Disabled</button>
+          <button class="btn btn-primary btn-md">
+            <div class="spinner"></div>
+            Salvando...
+          </button>
+          <button class="btn btn-secondary btn-md">
+            ✓ Salvo!
+          </button>
+          <button class="btn btn-primary btn-lg" style="width:100%; max-width:280px;">
+            Iniciar Treino →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 05 INPUTS ═══ -->
+    <section class="section" id="inputs">
+      <div class="section-eyebrow">05</div>
+      <h2 class="section-title">Inputs</h2>
+      <p class="section-desc">Todos os campos de formulário seguem o mesmo padrão visual.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Variantes de estado</div>
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-label">Nome completo</label>
+            <input type="text" class="field-input" placeholder="Ex: Denis Rodrigues" />
+          </div>
+          <div class="field">
+            <label class="field-label">E-mail</label>
+            <input type="email" class="field-input" value="denis@exemplo.com" />
+          </div>
+          <div class="field">
+            <label class="field-label">Peso atual</label>
+            <input type="number" class="field-input has-error" value="abc" />
+            <span class="field-error">⚠ Digite um número válido</span>
+          </div>
+          <div class="field">
+            <label class="field-label">Altura (cm)</label>
+            <input type="number" class="field-input" placeholder="Ex: 175" />
+            <span class="field-hint">Apenas números inteiros</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Tipos especiais</div>
+        <div class="flex flex-col gap-16">
+
+          <div class="field">
+            <label class="field-label">Data de nascimento</label>
+            <input type="date" class="field-input" style="color-scheme:dark;" />
+          </div>
+
+          <div class="field">
+            <label class="field-label">Gênero</label>
+            <div class="select-wrap">
+              <select class="field-input">
+                <option value="">Prefiro não informar</option>
+                <option>Masculino</option>
+                <option>Feminino</option>
+                <option>Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Objetivo</label>
+            <textarea class="field-input" rows="3" placeholder="Ex: Ganhar massa muscular, emagrecer 10kg..."></textarea>
+            <span class="field-hint">Máximo 300 caracteres</span>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 06 CARDS ═══ -->
+    <section class="section" id="cards">
+      <div class="section-eyebrow">06</div>
+      <h2 class="section-title">Cards</h2>
+      <p class="section-desc">Três estilos de card para diferentes contextos e níveis de ênfase.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Variantes</div>
+        <div class="flex flex-col gap-12">
+
+          <!-- Simples -->
+          <div class="card">
+            <div class="card-title">Card Padrão</div>
+            <div class="card-body mt-4">Usado para conteúdo genérico. Borda sutil, fundo escuro.</div>
+          </div>
+
+          <!-- Com acento -->
+          <div class="card card-accent">
+            <div class="card-title">Card com Destaque</div>
+            <div class="card-body mt-4">Barra laranja à esquerda indica prioridade ou seleção. Usado em fichas de treino ativas.</div>
+          </div>
+
+          <!-- Com brilho -->
+          <div class="card card-glow">
+            <div class="card-title" style="color:var(--orange);">Card Hero</div>
+            <div class="card-body mt-4">Brilho laranja sutil ao redor. Usado em CTAs e destaques do dashboard.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Cards de métricas</div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Peso</div>
+            <div class="metric-value">85<span class="metric-unit">kg</span></div>
+            <div class="metric-trend down">↓ 2kg este mês</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Treinos</div>
+            <div class="metric-value">24</div>
+            <div class="metric-trend up">↑ 4 esta semana</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Sequência</div>
+            <div class="metric-value">7<span class="metric-unit">dias</span></div>
+            <div class="metric-trend" style="color:var(--orange);">🔥 Em alta!</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 07 AVATAR ═══ -->
+    <section class="section" id="avatar">
+      <div class="section-eyebrow">07</div>
+      <h2 class="section-title">Avatar</h2>
+      <p class="section-desc">Sempre quadrado com cantos arredondados. Sem foto: iniciais em laranja.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Tamanhos — sem foto</div>
+        <div class="avatar-row">
+          <div class="flex flex-col items-center gap-8">
+            <div class="avatar avatar-xs">DR</div>
+            <span class="text-xs" style="color:var(--text-3);">xs · 28px</span>
+          </div>
+          <div class="flex flex-col items-center gap-8">
+            <div class="avatar avatar-sm">DR</div>
+            <span class="text-xs" style="color:var(--text-3);">sm · 36px</span>
+          </div>
+          <div class="flex flex-col items-center gap-8">
+            <div class="avatar avatar-md">DR</div>
+            <span class="text-xs" style="color:var(--text-3);">md · 48px</span>
+          </div>
+          <div class="flex flex-col items-center gap-8">
+            <div class="avatar avatar-lg">DR</div>
+            <span class="text-xs" style="color:var(--text-3);">lg · 64px</span>
+          </div>
+          <div class="flex flex-col items-center gap-8">
+            <div class="avatar avatar-xl">DR</div>
+            <span class="text-xs" style="color:var(--text-3);">xl · 88px</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Estilo gradiente — admin</div>
+        <div class="avatar-row">
+          <div class="avatar avatar-xl avatar-gradient">DR</div>
+          <div>
+            <div style="font-family:var(--font-display); font-size:22px; font-weight:800;">Denis Rodrigues</div>
+            <div style="color:var(--text-2); font-size:13px; margin-top:2px;">denis@stv.com.br</div>
+            <div class="badge badge-admin mt-8">⭐ Admin</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 08 BADGES ═══ -->
+    <section class="section" id="badges">
+      <div class="section-eyebrow">08</div>
+      <h2 class="section-title">Badges &amp; Tags</h2>
+      <p class="section-desc">Pills para status, papéis, dificuldade de treino e grupos musculares.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Papéis</div>
+        <div class="badge-row">
+          <span class="badge badge-admin">⭐ Admin</span>
+          <span class="badge badge-aluno">💪 Aluno</span>
+        </div>
+
+        <div class="demo-label mt-16">Status de conta</div>
+        <div class="badge-row">
+          <span class="badge badge-active"><span class="badge-dot"></span>Ativo</span>
+          <span class="badge badge-inactive"><span class="badge-dot"></span>Inativo</span>
+        </div>
+
+        <div class="demo-label mt-16">Dificuldade de treino</div>
+        <div class="badge-row">
+          <span class="badge badge-easy">😊 Fácil</span>
+          <span class="badge badge-medium">💪 Médio</span>
+          <span class="badge badge-hard">🔥 Difícil</span>
+          <span class="badge badge-terrible">💀 Destruidor</span>
+        </div>
+
+        <div class="demo-label mt-16">Grupos musculares</div>
+        <div class="badge-row">
+          <span class="badge badge-muscle">Peito</span>
+          <span class="badge badge-muscle">Costas</span>
+          <span class="badge badge-muscle">Pernas</span>
+          <span class="badge badge-muscle">Ombros</span>
+          <span class="badge badge-muscle">Bíceps</span>
+          <span class="badge badge-muscle">Tríceps</span>
+          <span class="badge badge-muscle">Abdômen</span>
+          <span class="badge badge-muscle">Glúteos</span>
+          <span class="badge badge-muscle">Panturrilha</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 09 NAVEGAÇÃO ═══ -->
+    <section class="section" id="navigation">
+      <div class="section-eyebrow">09</div>
+      <h2 class="section-title">Navegação</h2>
+      <p class="section-desc">Bottom navigation bar para mobile. Header simples com logo e ações contextuais.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Simulação de tela — Dashboard</div>
+        <div class="frames-row">
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+
+              <!-- Header -->
+              <div class="app-header">
+                <div class="app-header-brand">
+                  <div class="app-header-icon">🏋️</div>
+                  <div class="app-header-title">MUSCTRAINIG</div>
+                </div>
+                <div class="avatar avatar-sm" style="cursor:pointer;">DR</div>
+              </div>
+
+              <!-- Conteúdo mockado -->
+              <div class="app-scroll">
+
+                <div class="dash-hero">
+                  <div class="dash-hero-inner">
+                    <div class="dash-greeting">Bom dia,</div>
+                    <div class="dash-name">Denis 👋</div>
+                    <div class="dash-streak">
+                      <span class="streak-pill">🔥 7 dias seguidos</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="dash-stats">
+                  <div class="dash-stat">
+                    <div class="dash-stat-num">24</div>
+                    <div class="dash-stat-lbl">Treinos</div>
+                  </div>
+                  <div class="dash-stat">
+                    <div class="dash-stat-num">85</div>
+                    <div class="dash-stat-lbl">kg</div>
+                  </div>
+                  <div class="dash-stat">
+                    <div class="dash-stat-num">3</div>
+                    <div class="dash-stat-lbl">Fichas</div>
+                  </div>
+                </div>
+
+                <div class="dash-section-label">MINHAS FICHAS</div>
+
+                <div class="dash-workout-card">
+                  <div class="dash-workout-icon">🏋️</div>
+                  <div>
+                    <div class="dash-workout-name">Treino A — Peito</div>
+                    <div class="dash-workout-meta">8 exercícios · Seg / Qui</div>
+                  </div>
+                  <div class="dash-workout-arrow">›</div>
+                </div>
+
+                <div class="dash-workout-card" style="border-left-color: var(--surface-3);">
+                  <div class="dash-workout-icon" style="background: rgba(255,255,255,0.06);">🦵</div>
+                  <div>
+                    <div class="dash-workout-name">Treino B — Pernas</div>
+                    <div class="dash-workout-meta">6 exercícios · Ter / Sex</div>
+                  </div>
+                  <div class="dash-workout-arrow">›</div>
+                </div>
+
+              </div>
+
+              <!-- Bottom Nav -->
+              <div class="bottom-nav">
+                <div class="tab-item active">
+                  <div class="tab-icon">🏠</div>
+                  <div class="tab-label">Início</div>
+                  <div class="tab-dot"></div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">💪</div>
+                  <div class="tab-label">Treinos</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">📊</div>
+                  <div class="tab-label">Histórico</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">🥗</div>
+                  <div class="tab-label">Nutrição</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">👤</div>
+                  <div class="tab-label">Perfil</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Legenda ao lado -->
+          <div style="max-width:260px;">
+            <div style="font-family:var(--font-display); font-size:20px; font-weight:800; margin-bottom:16px;">Anatomia da navegação</div>
+            <div class="flex flex-col gap-12">
+              <div>
+                <div class="fw-600 mb-4">Header da página</div>
+                <div class="text-muted text-sm">Logo + título do app à esquerda. Ação contextual (avatar ou botão voltar) à direita.</div>
+              </div>
+              <div>
+                <div class="fw-600 mb-4">Bottom Navigation</div>
+                <div class="text-muted text-sm">5 abas. Ativa: ícone sólido + label laranja + dot laranja abaixo. Inativa: ícone opaco + label cinza.</div>
+              </div>
+              <div>
+                <div class="fw-600 mb-4">Conteúdo</div>
+                <div class="text-muted text-sm">Padding 12px nas laterais. Espaçamento 8px entre cards. Max-width 640px no desktop.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 10 FEEDBACK ═══ -->
+    <section class="section" id="feedback">
+      <div class="section-eyebrow">10</div>
+      <h2 class="section-title">Feedback</h2>
+      <p class="section-desc">Alertas, estados de carregamento e skeletons para feedback visual ao usuário.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Alertas inline</div>
+        <div class="alert alert-success">
+          <span class="alert-icon">✓</span>
+          <span>Perfil salvo com sucesso!</span>
+        </div>
+        <div class="alert alert-error">
+          <span class="alert-icon">⚠</span>
+          <span>Erro ao salvar. Verifique sua conexão e tente novamente.</span>
+        </div>
+        <div class="alert alert-warning">
+          <span class="alert-icon">!</span>
+          <span>Atenção: você tem alterações não salvas.</span>
+        </div>
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ</span>
+          <span>Seu treino foi atualizado pelo personal trainer.</span>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="demo-label">Loading skeleton</div>
+        <div class="flex flex-col gap-8">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-text" style="width:90%"></div>
+          <div class="skeleton skeleton-text" style="width:75%"></div>
+          <div class="skeleton skeleton-text" style="width:85%"></div>
+          <div class="skeleton skeleton-card mt-8"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 11 LAYOUT ═══ -->
+    <section class="section" id="layout">
+      <div class="section-eyebrow">11</div>
+      <h2 class="section-title">Layout Base</h2>
+      <p class="section-desc">Estrutura padrão de todas as páginas do app.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Estrutura de página</div>
+        <div class="flex flex-col gap-8">
+          <div class="layout-diagram" style="background:rgba(249,115,22,0.06); border-color:rgba(249,115,22,0.2); color:var(--orange);">
+            🔝 HEADER FIXO (48px) — logo + ação contextual
+          </div>
+          <div class="layout-diagram" style="height:200px; display:flex; align-items:center; justify-content:center;">
+            📄 CONTEÚDO PRINCIPAL<br/>
+            <span style="font-size:10px; margin-top:6px; display:block;">max-width 640px · padding 16px · scroll vertical</span>
+          </div>
+          <div class="layout-diagram" style="background:var(--surface-2); border-color:var(--border-md);">
+            🔻 BOTTOM NAV FIXO (56px + safe area) — 5 abas
+          </div>
+        </div>
+
+        <div class="mt-24 flex flex-col gap-8" style="border-top: 1px solid var(--border); padding-top: 24px;">
+          <div class="fw-600 mb-8">Regras de espaçamento</div>
+          <div class="flex items-center gap-16 text-sm text-muted">
+            <span>Padding lateral: <strong style="color:var(--text)">16px</strong></span>
+            <span>Gap entre cards: <strong style="color:var(--text)">8-12px</strong></span>
+            <span>Padding de seção: <strong style="color:var(--text)">24px top</strong></span>
+          </div>
+          <div class="flex items-center gap-16 text-sm text-muted">
+            <span>Radius de card: <strong style="color:var(--text)">20px</strong></span>
+            <span>Radius de input: <strong style="color:var(--text)">12px</strong></span>
+            <span>Radius de botão: <strong style="color:var(--text)">12px</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 12 MOCKUP COMPLETO ═══ -->
+    <section class="section" id="mockup">
+      <div class="section-eyebrow">12</div>
+      <h2 class="section-title">Tela Completa</h2>
+      <p class="section-desc">Exemplo de como o design system se aplica em uma tela real — Dashboard do aluno.</p>
+      <div class="section-divider"></div>
+
+      <div class="demo">
+        <div class="demo-label">Dashboard — Aluno (mobile 390px)</div>
+        <div style="display:flex; justify-content:center;">
+          <div class="phone" style="width:340px;">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+
+              <div class="app-header">
+                <div class="app-header-brand">
+                  <div class="app-header-icon">🏋️</div>
+                  <div class="app-header-title">MUSCTRAINIG</div>
+                </div>
+                <div class="avatar avatar-sm">DR</div>
+              </div>
+
+              <div class="app-scroll">
+
+                <!-- Hero com saudação -->
+                <div class="dash-hero">
+                  <div class="dash-hero-inner">
+                    <div style="display:flex; align-items:flex-start; gap:10px;">
+                      <div style="flex:1;">
+                        <div class="dash-greeting">Bom dia,</div>
+                        <div class="dash-name">Denis 👋</div>
+                        <div class="dash-streak">
+                          <span class="streak-pill">🔥 7 dias seguidos</span>
+                        </div>
+                      </div>
+                      <div class="avatar avatar-md avatar-gradient">DR</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Stats rápidos -->
+                <div class="dash-stats">
+                  <div class="dash-stat">
+                    <div class="dash-stat-num" style="color:var(--orange);">24</div>
+                    <div class="dash-stat-lbl">Treinos</div>
+                  </div>
+                  <div class="dash-stat">
+                    <div class="dash-stat-num">85</div>
+                    <div class="dash-stat-lbl">kg atual</div>
+                  </div>
+                  <div class="dash-stat">
+                    <div class="dash-stat-num">75</div>
+                    <div class="dash-stat-lbl">kg alvo</div>
+                  </div>
+                </div>
+
+                <!-- Treino de hoje -->
+                <div style="background:var(--surface); border:1px solid rgba(249,115,22,0.25); border-radius:var(--r-lg); padding:10px; box-shadow: 0 0 0 1px rgba(249,115,22,0.08), 0 4px 16px rgba(249,115,22,0.1);">
+                  <div class="dash-section-label mb-8" style="color:var(--orange);">HOJE — SEG, 22 MAI</div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <div class="dash-workout-icon">🏋️</div>
+                    <div>
+                      <div class="dash-workout-name">Treino A — Peito &amp; Tríceps</div>
+                      <div class="dash-workout-meta">8 exercícios · ~45 min</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary btn-md" style="width:100%; border-radius:var(--r-md); font-size:13px; height:36px;">
+                    Iniciar treino →
+                  </button>
+                </div>
+
+                <!-- Fichas -->
+                <div class="dash-section-label">TODAS AS FICHAS</div>
+
+                <div class="dash-workout-card">
+                  <div class="dash-workout-icon">🏋️</div>
+                  <div style="flex:1;">
+                    <div class="dash-workout-name">Treino A — Peito</div>
+                    <div class="dash-workout-meta">Seg / Qui · 8 exercícios</div>
+                  </div>
+                  <div class="dash-workout-arrow">›</div>
+                </div>
+
+                <div class="dash-workout-card" style="border-left-color:var(--surface-3);">
+                  <div class="dash-workout-icon" style="background:rgba(255,255,255,0.05);">🦵</div>
+                  <div style="flex:1;">
+                    <div class="dash-workout-name">Treino B — Pernas</div>
+                    <div class="dash-workout-meta">Ter / Sex · 6 exercícios</div>
+                  </div>
+                  <div class="dash-workout-arrow">›</div>
+                </div>
+
+                <div class="dash-workout-card" style="border-left-color:var(--surface-3);">
+                  <div class="dash-workout-icon" style="background:rgba(255,255,255,0.05);">🔙</div>
+                  <div style="flex:1;">
+                    <div class="dash-workout-name">Treino C — Costas</div>
+                    <div class="dash-workout-meta">Qua / Sáb · 7 exercícios</div>
+                  </div>
+                  <div class="dash-workout-arrow">›</div>
+                </div>
+
+              </div>
+
+              <div class="bottom-nav">
+                <div class="tab-item active">
+                  <div class="tab-icon">🏠</div>
+                  <div class="tab-label">Início</div>
+                  <div class="tab-dot"></div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">💪</div>
+                  <div class="tab-label">Treinos</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">📊</div>
+                  <div class="tab-label">Histórico</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">🥗</div>
+                  <div class="tab-label">Nutrição</div>
+                </div>
+                <div class="tab-item">
+                  <div class="tab-icon">👤</div>
+                  <div class="tab-label">Perfil</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rodapé -->
+    <div style="border-top: 1px solid var(--border); padding-top: 32px; color: var(--text-3); font-size: 12px;">
+      MUSCTRAINIG Design System v1.0 — Iron &amp; Ember · Criado em 22/05/2026
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight nav link ativo baseado no scroll
+  const sections = document.querySelectorAll('section[id]')
+  const links = document.querySelectorAll('.nav-link')
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'))
+        const active = document.querySelector(`.nav-link[href="#${entry.target.id}"]`)
+        if (active) active.classList.add('active')
+      }
+    })
+  }, { threshold: 0.3 })
+
+  sections.forEach(s => observer.observe(s))
+</script>
+
+</body>
+</html>
