@@ -14,7 +14,7 @@
 | Fase | Descrição | Status |
 |------|-----------|--------|
 | 1 | Fundação (Vite + React + TypeScript + Tailwind) | ✅ Completa |
-| 2 | Banco de dados (Supabase: tabelas, RLS, seed) | 🚧 SQL criado — aguardando execução no Supabase |
+| 2 | Banco de dados (Supabase: tabelas, RLS, seed) | ✅ Completa |
 | 3 | Autenticação (login, logout, rotas protegidas) | ✅ Completa |
 | 4 | Perfil do usuário | ⏳ Pendente |
 | 5 | Fichas de treino (CRUD admin + visualização aluno) | ⏳ Pendente |
@@ -56,7 +56,7 @@ Antes de cada fase, verificar a complexidade e seguir o fluxo correspondente:
 
 ---
 
-### FASE 2 — Banco de dados 🚧
+### FASE 2 — Banco de dados ✅ COMPLETA
 **Complexidade:** 🟡 Simples (manual — executar SQL no Supabase)
 
 **O que entrega:** 9 tabelas criadas, RLS ativo, 39 exercícios pré-cadastrados.
