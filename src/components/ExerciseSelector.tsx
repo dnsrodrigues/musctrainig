@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Search } from 'lucide-react'
+import { X, Search, Plus, ChevronLeft, Loader2 } from 'lucide-react'
 import type { Exercise, MuscleGroup } from '../types'
 import { MUSCLE_GROUP_LABELS } from '../types'
-import { getExercises } from '../services/workout.service'
+import { getExercises, createExercise } from '../services/workout.service'
+import { useAuth } from '../context/AuthContext'
 
 interface ExerciseSelectorProps {
   isOpen: boolean
@@ -13,12 +14,17 @@ interface ExerciseSelectorProps {
 
 const ALL_MUSCLE_GROUPS = Object.entries(MUSCLE_GROUP_LABELS) as [MuscleGroup, string][]
 
+type ViewMode = 'search' | 'create'
+
 export function ExerciseSelector({
   isOpen,
   onClose,
   onSelect,
   excludeIds = [],
 }: ExerciseSelectorProps) {
+  const { profile } = useAuth()
+
+  // ── Estado de busca ──
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [filtered, setFiltered] = useState<Exercise[]>([])
   const [search, setSearch] = useState('')
@@ -26,9 +32,21 @@ export function ExerciseSelector({
   const [loading, setLoading] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  // Carrega exercícios ao abrir
+  // ── Estado de criação ──
+  const [view, setView] = useState<ViewMode>('search')
+  const [newName, setNewName] = useState('')
+  const [newMuscle, setNewMuscle] = useState<MuscleGroup | ''>('')
+  const [newDesc, setNewDesc] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [createFormErrors, setCreateFormErrors] = useState<{ name?: string; muscle?: string }>({})
+
+  // ── Carrega exercícios ao abrir ──
   useEffect(() => {
     if (!isOpen) return
+    setView('search')
+    setSearch('')
+    setMuscleFilter(null)
     setLoading(true)
     getExercises()
       .then((data) => {
@@ -40,7 +58,7 @@ export function ExerciseSelector({
     setTimeout(() => searchRef.current?.focus(), 100)
   }, [isOpen])
 
-  // Filtra em tempo real
+  // ── Filtra em tempo real ──
   useEffect(() => {
     let result = exercises.filter((e) => !excludeIds.includes(e.id))
     if (muscleFilter) result = result.filter((e) => e.muscle_group === muscleFilter)
@@ -51,17 +69,64 @@ export function ExerciseSelector({
     setFiltered(result)
   }, [search, muscleFilter, exercises, excludeIds])
 
-  // Fecha com Escape
+  // ── Fecha com Escape ──
   useEffect(() => {
     if (!isOpen) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (view === 'create') setView('search')
+        else onClose()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, view])
+
+  // ── Abre modo criação pré-preenchido com o termo buscado ──
+  function openCreate() {
+    setNewName(search.trim())
+    setNewMuscle('')
+    setNewDesc('')
+    setCreateError(null)
+    setCreateFormErrors({})
+    setView('create')
+    // foca no campo de grupo muscular logo depois
+    setTimeout(() => {
+      document.getElementById('new-exercise-muscle')?.focus()
+    }, 80)
+  }
+
+  // ── Cria exercício ──
+  async function handleCreate() {
+    const errs: typeof createFormErrors = {}
+    if (!newName.trim()) errs.name = 'Nome obrigatório'
+    if (!newMuscle) errs.muscle = 'Escolha o grupo muscular'
+    setCreateFormErrors(errs)
+    if (Object.keys(errs).length > 0) return
+
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const created = await createExercise({
+        name: newName,
+        muscle_group: newMuscle,
+        description: newDesc || undefined,
+        createdBy: profile!.id,
+      })
+      // Adiciona à lista local e seleciona
+      setExercises((prev) => [...prev, created])
+      onSelect(created)
+      onClose()
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Erro ao criar exercício')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   if (!isOpen) return null
+
+  const noResults = !loading && filtered.length === 0 && search.trim().length > 0
 
   return (
     <>
@@ -69,11 +134,9 @@ export function ExerciseSelector({
       <div
         onClick={onClose}
         style={{
-          position: 'fixed',
-          inset: 0,
+          position: 'fixed', inset: 0,
           background: 'rgba(5,5,10,0.8)',
-          zIndex: 40,
-          backdropFilter: 'blur(4px)',
+          zIndex: 40, backdropFilter: 'blur(4px)',
         }}
       />
 
@@ -81,8 +144,7 @@ export function ExerciseSelector({
       <div
         style={{
           position: 'fixed',
-          top: '50%',
-          left: '50%',
+          top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 50,
           width: 'min(480px, calc(100vw - 32px))',
@@ -91,244 +153,359 @@ export function ExerciseSelector({
           border: '1px solid var(--border-md)',
           borderTop: '2px solid var(--accent)',
           borderRadius: 4,
-          display: 'flex',
-          flexDirection: 'column',
+          display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
         }}
       >
-        {/* Header do modal */}
-        <div
-          style={{
-            padding: '14px 16px',
-            borderBottom: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 800,
-                fontSize: 14,
-                color: 'var(--fg)',
-              }}
-            >
-              Adicionar Exercício
-            </div>
-            <div
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 9,
-                color: 'var(--fg-3)',
-                marginTop: 2,
-                fontStyle: 'italic',
-              }}
-            >
-              // {exercises.length} exercícios no catálogo
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--fg-3)',
-              cursor: 'pointer',
-              padding: 4,
-              opacity: 0.5,
-            }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Busca */}
-        <div
-          style={{
-            padding: '10px 16px 0',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--border-md)',
-              borderRadius: 4,
-              padding: '7px 10px',
-              marginBottom: 10,
-            }}
-          >
-            <Search size={13} style={{ color: 'var(--fg-3)', opacity: 0.5, flexShrink: 0 }} />
-            <input
-              ref={searchRef}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar exercício..."
-              style={{
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--fg)',
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 12,
-                flex: 1,
-              }}
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-3)', opacity: 0.5 }}
-              >
-                <X size={12} />
+        {/* ═══════════════════════════════════════════
+            MODO: BUSCA
+        ═══════════════════════════════════════════ */}
+        {view === 'search' && (
+          <>
+            {/* Header */}
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 14, color: 'var(--fg)' }}>
+                  Adicionar Exercício
+                </div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--fg-3)', marginTop: 2, fontStyle: 'italic' }}>
+                  // {exercises.length} no catálogo · admin pode criar novos
+                </div>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 4, opacity: 0.5 }}>
+                <X size={16} />
               </button>
-            )}
-          </div>
-
-          {/* Chips de grupo muscular */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 6,
-              flexWrap: 'wrap',
-              paddingBottom: 10,
-              overflowX: 'auto',
-            }}
-          >
-            <button
-              onClick={() => setMuscleFilter(null)}
-              style={{
-                background: muscleFilter === null ? 'var(--accent)' : 'transparent',
-                border: `1px solid ${muscleFilter === null ? 'var(--accent)' : 'var(--border-md)'}`,
-                borderRadius: 2,
-                padding: '3px 8px',
-                color: muscleFilter === null ? 'var(--bg)' : 'var(--fg-3)',
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 9,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Todos
-            </button>
-            {ALL_MUSCLE_GROUPS.map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setMuscleFilter(muscleFilter === key ? null : key)}
-                style={{
-                  background: muscleFilter === key ? 'var(--accent)' : 'transparent',
-                  border: `1px solid ${muscleFilter === key ? 'var(--accent)' : 'var(--border-md)'}`,
-                  borderRadius: 2,
-                  padding: '3px 8px',
-                  color: muscleFilter === key ? 'var(--bg)' : 'var(--fg-3)',
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Lista de exercícios */}
-        <div style={{ overflowY: 'auto', flex: 1, padding: '8px 8px' }}>
-          {loading && (
-            <div
-              style={{
-                padding: '24px 16px',
-                textAlign: 'center',
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 11,
-                color: 'var(--fg-3)',
-                fontStyle: 'italic',
-              }}
-            >
-              // carregando...
             </div>
-          )}
 
-          {!loading && filtered.length === 0 && (
-            <div
-              style={{
-                padding: '24px 16px',
-                textAlign: 'center',
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 11,
-                color: 'var(--fg-3)',
-                fontStyle: 'italic',
-              }}
-            >
-              // nenhum exercício encontrado
-            </div>
-          )}
-
-          {!loading &&
-            filtered.map((exercise) => (
-              <button
-                key={exercise.id}
-                onClick={() => {
-                  onSelect(exercise)
-                  onClose()
-                }}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: 3,
-                  padding: '9px 10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(200,240,74,0.06)'
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
-                }}
-              >
-                <span
+            {/* Busca */}
+            <div style={{ padding: '10px 16px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid var(--border-md)',
+                borderRadius: 4, padding: '7px 10px', marginBottom: 10,
+              }}>
+                <Search size={13} style={{ color: 'var(--fg-3)', opacity: 0.5, flexShrink: 0 }} />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar exercício..."
                   style={{
-                    fontFamily: "'Syne', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 13,
+                    background: 'transparent', border: 'none', outline: 'none',
+                    color: 'var(--fg)', fontFamily: "'DM Mono', monospace", fontSize: 12, flex: 1,
+                  }}
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-3)', opacity: 0.5 }}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Chips de grupo muscular */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingBottom: 10 }}>
+                <button
+                  onClick={() => setMuscleFilter(null)}
+                  style={{
+                    background: muscleFilter === null ? 'var(--accent)' : 'transparent',
+                    border: `1px solid ${muscleFilter === null ? 'var(--accent)' : 'var(--border-md)'}`,
+                    borderRadius: 2, padding: '3px 8px',
+                    color: muscleFilter === null ? 'var(--bg)' : 'var(--fg-3)',
+                    fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: '0.1em',
+                    textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  Todos
+                </button>
+                {ALL_MUSCLE_GROUPS.map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setMuscleFilter(muscleFilter === key ? null : key)}
+                    style={{
+                      background: muscleFilter === key ? 'var(--accent)' : 'transparent',
+                      border: `1px solid ${muscleFilter === key ? 'var(--accent)' : 'var(--border-md)'}`,
+                      borderRadius: 2, padding: '3px 8px',
+                      color: muscleFilter === key ? 'var(--bg)' : 'var(--fg-3)',
+                      fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: '0.1em',
+                      textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista */}
+            <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
+              {loading && (
+                <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                  // carregando...
+                </div>
+              )}
+
+              {/* Nenhum resultado — oferece criar */}
+              {noResults && (
+                <div style={{ padding: '16px 8px' }}>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic', marginBottom: 12, textAlign: 'center' }}>
+                    // "{search}" não encontrado na biblioteca
+                  </div>
+                  <button
+                    onClick={openCreate}
+                    style={{
+                      width: '100%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                      background: 'rgba(200,240,74,0.06)',
+                      border: '1px solid rgba(200,240,74,0.35)',
+                      borderRadius: 4, padding: '11px',
+                      color: 'var(--accent)',
+                      fontFamily: "'Syne', sans-serif", fontWeight: 800,
+                      fontSize: 11, letterSpacing: '0.08em', cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(200,240,74,0.1)')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(200,240,74,0.06)')}
+                  >
+                    <Plus size={14} />
+                    Criar "{search.trim()}" na biblioteca
+                  </button>
+                </div>
+              )}
+
+              {/* Lista de resultados */}
+              {!loading && filtered.map((exercise) => (
+                <button
+                  key={exercise.id}
+                  onClick={() => { onSelect(exercise); onClose() }}
+                  style={{
+                    width: '100%', background: 'transparent', border: 'none',
+                    borderRadius: 3, padding: '9px 10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(200,240,74,0.06)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')}
+                >
+                  <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--fg)' }}>
+                    {exercise.name}
+                  </span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--fg-3)', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    {MUSCLE_GROUP_LABELS[exercise.muscle_group as MuscleGroup] ?? exercise.muscle_group}
+                  </span>
+                </button>
+              ))}
+
+              {/* Sem termo de busca e sem filtro: mostra botão de criar no rodapé */}
+              {!loading && !noResults && (
+                <div style={{ padding: '10px 8px 4px', borderTop: '1px solid var(--border)', marginTop: 4 }}>
+                  <button
+                    onClick={openCreate}
+                    style={{
+                      width: '100%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      background: 'transparent',
+                      border: '1px dashed var(--border-md)',
+                      borderRadius: 4, padding: '8px',
+                      color: 'var(--fg-3)',
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      const el = e.currentTarget as HTMLButtonElement
+                      el.style.borderColor = 'var(--accent)'
+                      el.style.color = 'var(--accent)'
+                    }}
+                    onMouseLeave={(e) => {
+                      const el = e.currentTarget as HTMLButtonElement
+                      el.style.borderColor = 'var(--border-md)'
+                      el.style.color = 'var(--fg-3)'
+                    }}
+                  >
+                    <Plus size={11} />
+                    Criar exercício novo
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════
+            MODO: CRIAR EXERCÍCIO
+        ═══════════════════════════════════════════ */}
+        {view === 'create' && (
+          <>
+            {/* Header */}
+            <div style={{
+              padding: '14px 16px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <button
+                onClick={() => setView('search')}
+                style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 2, opacity: 0.6, display: 'flex', alignItems: 'center' }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 14, color: 'var(--fg)' }}>
+                  Novo Exercício
+                </div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--fg-3)', marginTop: 2, fontStyle: 'italic' }}>
+                  // será adicionado à biblioteca permanentemente
+                </div>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 4, opacity: 0.5 }}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Formulário */}
+            <div style={{ padding: '16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Nome */}
+              <div>
+                <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--fg-3)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                  Nome *
+                </label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); setCreateFormErrors((p) => ({ ...p, name: undefined })) }}
+                  placeholder="Ex: Remada Cavalinho"
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${createFormErrors.name ? 'var(--danger)' : 'var(--border-md)'}`,
+                    borderRadius: 4, padding: '9px 12px',
                     color: 'var(--fg)',
+                    fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 14,
+                    outline: 'none',
                   }}
-                >
-                  {exercise.name}
-                </span>
-                <span
+                  onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
+                  onBlur={(e) => (e.target.style.borderColor = createFormErrors.name ? 'var(--danger)' : 'var(--border-md)')}
+                />
+                {createFormErrors.name && (
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--danger)', marginTop: 4 }}>
+                    // {createFormErrors.name}
+                  </div>
+                )}
+              </div>
+
+              {/* Grupo muscular */}
+              <div>
+                <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--fg-3)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                  Grupo Muscular *
+                </label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {ALL_MUSCLE_GROUPS.map(([key, label]) => (
+                    <button
+                      key={key}
+                      id={key === 'chest' ? 'new-exercise-muscle' : undefined}
+                      onClick={() => { setNewMuscle(key); setCreateFormErrors((p) => ({ ...p, muscle: undefined })) }}
+                      style={{
+                        background: newMuscle === key ? 'var(--accent)' : 'transparent',
+                        border: `1px solid ${createFormErrors.muscle && !newMuscle ? 'var(--danger)' : newMuscle === key ? 'var(--accent)' : 'var(--border-md)'}`,
+                        borderRadius: 3, padding: '5px 10px',
+                        color: newMuscle === key ? 'var(--bg)' : 'var(--fg-3)',
+                        fontFamily: "'DM Mono', monospace", fontSize: 9,
+                        letterSpacing: '0.08em', textTransform: 'uppercase',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {createFormErrors.muscle && (
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--danger)', marginTop: 4 }}>
+                    // {createFormErrors.muscle}
+                  </div>
+                )}
+              </div>
+
+              {/* Descrição (opcional) */}
+              <div>
+                <label style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--fg-3)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                  Descrição <span style={{ opacity: 0.4 }}>(opcional)</span>
+                </label>
+                <textarea
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  placeholder="Instruções de execução..."
+                  rows={2}
                   style={{
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: 9,
-                    color: 'var(--fg-3)',
-                    opacity: 0.5,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border-md)',
+                    borderRadius: 4, padding: '9px 12px',
+                    color: 'var(--fg)',
+                    fontFamily: "'DM Mono', monospace", fontSize: 11,
+                    outline: 'none', resize: 'vertical',
                   }}
-                >
-                  {MUSCLE_GROUP_LABELS[exercise.muscle_group as MuscleGroup] ?? exercise.muscle_group}
-                </span>
+                  onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+                />
+              </div>
+
+              {/* Erro */}
+              {createError && (
+                <div style={{
+                  borderLeft: '2px solid var(--danger)',
+                  background: 'rgba(239,68,68,0.05)',
+                  padding: '8px 12px',
+                  fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--danger)',
+                }}>
+                  ⚠ {createError}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setView('search')}
+                style={{
+                  background: 'transparent', border: '1px solid var(--border-md)',
+                  borderRadius: 4, padding: '8px 16px',
+                  color: 'var(--fg-2)',
+                  fontFamily: "'DM Mono', monospace", fontSize: 9,
+                  letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
+                }}
+              >
+                Voltar
               </button>
-            ))}
-        </div>
+              <button
+                onClick={handleCreate}
+                disabled={creating}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: creating ? 'rgba(200,240,74,0.5)' : 'var(--accent)',
+                  border: 'none', borderRadius: 4, padding: '8px 18px',
+                  color: 'var(--bg)',
+                  fontFamily: "'Syne', sans-serif", fontWeight: 800,
+                  fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase',
+                  cursor: creating ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {creating
+                  ? <><Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> Criando...</>
+                  : <><Plus size={11} /> Criar e Adicionar</>
+                }
+              </button>
+            </div>
+          </>
+        )}
       </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </>
   )
 }

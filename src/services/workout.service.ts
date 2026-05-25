@@ -287,3 +287,25 @@ export async function getExercises(filters?: {
   if (error) throw new Error(error.message)
   return (data ?? []) as Exercise[]
 }
+
+/** Cria um novo exercício na biblioteca */
+export async function createExercise(data: {
+  name: string
+  muscle_group: string
+  description?: string
+  createdBy: string
+}): Promise<Exercise> {
+  const { data: created, error } = await supabase
+    .from('exercise_library')
+    .insert({
+      name: data.name.trim(),
+      muscle_group: data.muscle_group,
+      description: data.description?.trim() || null,
+      created_by: data.createdBy,
+    })
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message)
+  return created as Exercise
+}
