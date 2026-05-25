@@ -6,6 +6,10 @@ import { AdminRoute } from './components/layout/AdminRoute'
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { WorkoutsPage } from './pages/WorkoutsPage'
+import { WorkoutDetailPage } from './pages/WorkoutDetailPage'
+import { WorkoutsAdminPage } from './pages/admin/WorkoutsAdminPage'
+import { WorkoutFormPage } from './pages/admin/WorkoutFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
 function App() {
@@ -32,10 +36,18 @@ function App() {
               {/* Fase 4 — Perfil do usuário */}
               <Route path="/perfil" element={<ProfilePage />} />
 
+              {/* ── Fase 5 — Fichas de Treino (aluno) ── */}
+              <Route path="/workouts" element={<WorkoutsPage />} />
+              <Route path="/workouts/:id" element={<WorkoutDetailPage />} />
+
               {/* ── Rotas exclusivas do admin ── */}
               <Route element={<AdminRoute />}>
-                {/* Serão adicionadas na Fase 9 */}
-                <Route path="/admin" element={<Navigate to="/admin/alunos" replace />} />
+                <Route path="/admin" element={<Navigate to="/admin/workouts" replace />} />
+
+                {/* Fase 5 — Fichas de Treino (admin) */}
+                <Route path="/admin/workouts" element={<WorkoutsAdminPage />} />
+                <Route path="/admin/workouts/new" element={<WorkoutFormPage />} />
+                <Route path="/admin/workouts/:id/edit" element={<WorkoutFormPage />} />
               </Route>
 
             </Route>

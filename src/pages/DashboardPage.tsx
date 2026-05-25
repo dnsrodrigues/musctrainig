@@ -240,7 +240,7 @@ export function DashboardPage() {
               { label: 'Auth',       done: true  },
               { label: 'Perfil',     done: true  },
               { label: 'Design v2',  done: true  },
-              { label: 'Fichas',     done: false },
+              { label: 'Fichas',     done: true  },
               { label: 'Treino',     done: false },
               { label: 'Histórico',  done: false },
             ].map((phase) => (
@@ -267,12 +267,62 @@ export function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Link — perfil */}
+        {/* Links de navegação */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 1 }}
         >
+          {/* Fichas de Treino */}
+          <Link
+            to={isAdmin ? '/admin/workouts' : '/workouts'}
+            className="flex items-center justify-between group"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderLeft: '2px solid var(--accent)',
+              padding: '12px 14px',
+              transition: 'border-color 0.15s, background 0.15s',
+              textDecoration: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(200,240,74,0.04)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--surface)'
+            }}
+          >
+            <div>
+              <div style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--fg)',
+                letterSpacing: '0.03em',
+              }}>
+                {isAdmin ? 'Biblioteca de Fichas' : 'Minhas Fichas'}
+              </div>
+              <div style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 9,
+                color: 'var(--accent)',
+                letterSpacing: '0.04em',
+                marginTop: 1,
+                fontStyle: 'italic',
+                opacity: 0.7,
+              }}>
+                // {isAdmin ? 'criar e gerenciar fichas de treino' : 'ver fichas e treino de hoje'}
+              </div>
+            </div>
+            <ChevronRight
+              size={14}
+              className="transition-transform group-hover:translate-x-1"
+              style={{ color: 'var(--accent)', opacity: 0.6 }}
+            />
+          </Link>
+
+          {/* Meu Perfil */}
           <Link
             to="/perfil"
             className="flex items-center justify-between group"

@@ -84,6 +84,16 @@ export const WEEK_DAY_LABELS: Record<WeekDay, string> = {
   sunday: 'Domingo',
 }
 
+export const WEEK_DAY_SHORT: Record<WeekDay, string> = {
+  monday: 'Seg',
+  tuesday: 'Ter',
+  wednesday: 'Qua',
+  thursday: 'Qui',
+  friday: 'Sex',
+  saturday: 'Sáb',
+  sunday: 'Dom',
+}
+
 export interface Workout {
   id: string
   name: string
@@ -91,6 +101,8 @@ export interface Workout {
   user_id: string
   created_by: string
   week_days: WeekDay[]
+  is_template: boolean    // ficha na biblioteca do admin (reutilizável)
+  template_id?: string    // se criada a partir de um template
   is_active: boolean
   created_at: string
   updated_at: string
@@ -108,6 +120,34 @@ export interface WorkoutExercise {
   rest_seconds: number    // tempo de descanso em segundos
   notes?: string
   order_index: number     // posição na lista
+}
+
+// --- DTOs para Fichas ---
+
+export interface CreateWorkoutDTO {
+  name: string
+  description?: string
+  user_id: string
+  week_days: WeekDay[]
+  is_template: boolean
+  template_id?: string
+}
+
+export interface UpdateWorkoutDTO {
+  name?: string
+  description?: string
+  week_days?: WeekDay[]
+  is_template?: boolean
+}
+
+export interface AddExerciseDTO {
+  exercise_id: string
+  sets: number
+  reps: string
+  suggested_load?: number
+  rest_seconds: number
+  notes?: string
+  order_index: number
 }
 
 // --- Sessão de Treino ---

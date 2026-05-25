@@ -407,3 +407,23 @@ INSERT INTO exercise_library (name, muscle_group, description) VALUES
   ('Afundo', 'glutes', 'Exercício de glúteos e pernas. Com ou sem peso.'),
   ('Cadeira Abdutora', 'glutes', 'Isolamento dos glúteos médio e mínimo.'),
   ('Hip Thrust', 'glutes', 'Elevação de quadril com barra. Melhor exercício para glúteos.');
+
+-- =============================================
+-- PATCH v3 — Fase 5: Fichas de Treino
+-- Executar no painel SQL do Supabase
+-- =============================================
+
+-- Adiciona suporte a fichas-template na biblioteca do admin
+ALTER TABLE workouts
+  ADD COLUMN IF NOT EXISTS is_template BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS template_id UUID REFERENCES workouts(id);
+
+-- Índice para buscar rapidamente fichas de um template
+CREATE INDEX IF NOT EXISTS idx_workouts_template ON workouts(template_id) WHERE template_id IS NOT NULL;
+
+-- Permite que alunos leiam fichas-template (biblioteca pública do admin)
+DROP POLICY IF EXISTS "workouts: usuário vê as suas fichas" ON workouts;
+CREATE POLICY "workouts: usuário vê as suas fichas"
+  ON workouts FOR SELECT
+  USING (user_id = auth.uid() OR is_template = true);
+
