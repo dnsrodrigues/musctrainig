@@ -1,7 +1,8 @@
-﻿import { LogOut, Dumbbell, User, ChevronRight } from 'lucide-react'
+import { LogOut, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
+import { Avatar } from '../components/ui/Avatar'
 import { Button } from '../components/ui/Button'
 import { ThemeSwitcher } from '../components/ui/ThemeSwitcher'
 
@@ -10,203 +11,313 @@ import { ThemeSwitcher } from '../components/ui/ThemeSwitcher'
 export function DashboardPage() {
   const { profile, isAdmin, signOut } = useAuth()
 
+  const nameParts = (profile?.full_name ?? 'Atleta').split(' ')
+  const firstName = nameParts[0]
+  const lastName  = nameParts.slice(1).join(' ')
+
   async function handleLogout() {
     await signOut()
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
 
-      {/* ── Header ──────────────────────────────────────── */}
+      {/* Grid lines decorativo */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)' }}
+      >
+        {Array.from({ length: 12 }).map((_, i) => (
+          <span key={i} style={{ borderRight: '1px solid var(--border)' }} />
+        ))}
+      </div>
+
+      {/* ── Header ──────────────────────────────────── */}
       <header
-        className="sticky top-0 z-20 px-4 py-3"
+        className="sticky top-0 z-20"
         style={{
-          background: 'rgba(6,4,4,0.7)',
-          borderBottom: '1px solid var(--line)',
-          backdropFilter: 'blur(20px)',
+          padding: '14px 16px',
+          background: 'rgba(5,5,10,0.7)',
+          borderBottom: '1px solid var(--border)',
+          backdropFilter: 'blur(12px)',
         }}
       >
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, var(--accent-two), var(--accent) 60%)' }}
-            >
-              <Dumbbell size={16} style={{ color: 'var(--bg)' }} />
-            </div>
-            <span
-              className="font-display text-base font-bold tracking-tight"
-              style={{ color: 'var(--ink)' }}
-            >
+          <div>
+            <div style={{
+              fontFamily: "'Syne', sans-serif",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+            }}>
               MUSCLE TRAINING
-            </span>
+            </div>
+            <div style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 9,
+              fontStyle: 'italic',
+              color: 'var(--fg-3)',
+              letterSpacing: '0.1em',
+              marginTop: 1,
+            }}>
+              // {isAdmin ? 'painel admin' : 'bem-vindo de volta'}
+            </div>
           </div>
 
-          {/* Direita: theme switcher + logout */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <ThemeSwitcher />
-            <div style={{ width: 1, height: 20, background: 'var(--line)' }} />
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut size={14} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              style={{ fontSize: 10, padding: '0 10px', height: 28 }}
+            >
+              <LogOut size={12} />
               Sair
             </Button>
+            {profile?.full_name && (
+              <Avatar name={profile.full_name} size="sm" />
+            )}
           </div>
         </div>
       </header>
 
-      {/* ── Conteúdo ────────────────────────────────────── */}
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      {/* ── Conteúdo ─────────────────────────────────── */}
+      <main className="max-w-2xl mx-auto px-4 py-6 relative z-10">
 
-        {/* Boas-vindas */}
+        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderLeft: '2px solid var(--accent)',
+            padding: '16px',
+            marginBottom: 2,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
         >
-          <p
-            className="text-xs font-light tracking-[0.24em] uppercase mb-2"
-            style={{ color: 'var(--faint)' }}
-          >
-            Bem-vindo
-          </p>
-          <h1
-            className="font-display text-4xl font-bold leading-none mb-8"
-            style={{ color: 'var(--ink)' }}
-          >
-            {profile?.full_name ?? 'Atleta'}
-          </h1>
+          {/* Hatch pattern */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 16px, rgba(200,240,74,0.025) 16px, rgba(200,240,74,0.025) 17px)',
+            pointerEvents: 'none',
+          }} />
+
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <div style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 9,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'var(--accent)',
+                marginBottom: 4,
+              }}>
+                // bom dia
+              </div>
+              <div style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: '-0.01em',
+                color: 'var(--fg)',
+                lineHeight: 1,
+              }}>
+                {firstName}{' '}
+                {lastName && (
+                  <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>
+                    {lastName}
+                  </em>
+                )}
+              </div>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                marginTop: 10,
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 9,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: 'var(--accent-light)',
+                border: '1px solid rgba(200,240,74,0.25)',
+                padding: '3px 8px',
+                background: 'var(--accent-muted)',
+              }}>
+                {isAdmin ? '⭐ Personal Trainer' : '💪 Em treino'}
+              </div>
+            </div>
+
+            {profile?.full_name && (
+              <Avatar name={profile.full_name} size="md" />
+            )}
+          </div>
         </motion.div>
 
-        {/* Card de boas-vindas */}
+        {/* Stats grid */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-          className="glass-card rounded-2xl p-6 mb-4 relative overflow-hidden"
+          transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 1,
+            background: 'var(--border)',
+            marginBottom: 12,
+          }}
         >
-          {/* Barra lateral de acento */}
-          <div
-            className="absolute left-0 top-0 bottom-0 w-0.5"
-            style={{ background: 'linear-gradient(to bottom, var(--accent), transparent)' }}
-          />
-
-          <div className="flex items-center gap-4">
+          {[
+            { label: 'Treinos',  value: '—',   accent: true },
+            { label: 'kg atual', value: profile?.weight        ? String(profile.weight)        : '—' },
+            { label: 'kg alvo',  value: profile?.target_weight ? String(profile.target_weight) : '—' },
+          ].map((stat) => (
             <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', border: '1px solid var(--accent-glow)' }}
-            >
-              <User size={22} style={{ color: 'var(--accent)' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2
-                className="font-display text-xl font-bold truncate"
-                style={{ color: 'var(--ink)' }}
-              >
-                {profile?.full_name ?? 'Usuário'}
-              </h2>
-              <p
-                className="text-xs font-light mt-0.5 truncate"
-                style={{ color: 'var(--muted)' }}
-              >
-                {profile?.email}
-              </p>
-            </div>
-            <span
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0"
+              key={stat.label}
               style={{
-                background: isAdmin
-                  ? 'color-mix(in srgb, var(--accent) 14%, transparent)'
-                  : 'var(--glass)',
-                color: isAdmin ? 'var(--accent)' : 'var(--muted)',
-                border: '1px solid var(--line)',
+                background: 'var(--surface)',
+                padding: '12px 10px',
+                textAlign: 'center',
               }}
             >
-              {isAdmin ? '⭐ Admin' : '💪 Aluno'}
-            </span>
-          </div>
-
-          {/* Link para perfil */}
-          <Link
-            to="/perfil"
-            className="flex items-center justify-between mt-5 pt-4 group transition-colors"
-            style={{ borderTop: '1px solid var(--line)' }}
-          >
-            <span
-              className="text-sm font-medium"
-              style={{ color: 'var(--muted)' }}
-            >
-              Ver e editar meu perfil
-            </span>
-            <ChevronRight
-              size={16}
-              className="transition-transform group-hover:translate-x-1"
-              style={{ color: 'var(--accent)' }}
-            />
-          </Link>
+              <span style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 26,
+                fontWeight: 800,
+                color: stat.accent ? 'var(--accent)' : 'var(--fg)',
+                display: 'block',
+                lineHeight: 1,
+                letterSpacing: '-0.02em',
+              }}>
+                {stat.value}
+              </span>
+              <div style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 8,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: 'var(--fg-3)',
+                marginTop: 4,
+              }}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
         </motion.div>
 
-        {/* Status em construção */}
+        {/* Card — próximas fases */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-          className="glass-card rounded-2xl p-8 text-center"
+          transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid rgba(200,240,74,0.25)',
+            boxShadow: '0 0 0 1px rgba(200,240,74,0.06), 0 4px 32px rgba(200,240,74,0.08)',
+            padding: '20px',
+            marginBottom: 8,
+          }}
         >
-          <div className="text-5xl mb-5">🚧</div>
+          <div style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 9,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'var(--accent)',
+            marginBottom: 12,
+          }}>
+            // status das fases
+          </div>
 
-          <p
-            className="text-xs font-semibold tracking-[0.2em] uppercase mb-2"
-            style={{ color: 'var(--accent)' }}
-          >
-            Em construção
-          </p>
-
-          <h3
-            className="font-display text-2xl font-bold mb-3"
-            style={{ color: 'var(--ink)' }}
-          >
-            Dashboard completo em breve
-          </h3>
-
-          <p
-            className="text-sm font-light leading-relaxed max-w-sm mx-auto"
-            style={{ color: 'var(--muted)' }}
-          >
-            O painel com fichas de treino, histórico e gráficos de progressão está sendo construído nas próximas fases.
-          </p>
-
-          {/* Linha divisória */}
-          <div
-            className="my-6 h-px"
-            style={{ background: 'var(--line)' }}
-          />
-
-          {/* Status das fases */}
-          <div className="flex flex-wrap justify-center gap-2">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {[
-              { label: 'Auth', done: true },
-              { label: 'Perfil', done: true },
-              { label: 'Design v3', done: true },
-              { label: 'Fichas', done: false },
-              { label: 'Treino', done: false },
-              { label: 'Histórico', done: false },
+              { label: 'Auth',       done: true  },
+              { label: 'Perfil',     done: true  },
+              { label: 'Design v2',  done: true  },
+              { label: 'Fichas',     done: false },
+              { label: 'Treino',     done: false },
+              { label: 'Histórico',  done: false },
             ].map((phase) => (
               <span
                 key={phase.label}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg"
                 style={{
-                  background: phase.done
-                    ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
-                    : 'var(--glass)',
-                  color: phase.done ? 'var(--accent)' : 'var(--faint)',
-                  border: '1px solid var(--line)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '3px 9px',
+                  border: '1px solid',
+                  borderColor: phase.done ? 'rgba(200,240,74,0.3)' : 'var(--border-md)',
+                  background: phase.done ? 'var(--accent-muted)' : 'transparent',
+                  color: phase.done ? 'var(--accent-light)' : 'var(--fg-3)',
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 10,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
                 }}
               >
                 {phase.done ? '✓' : '○'} {phase.label}
               </span>
             ))}
           </div>
+        </motion.div>
+
+        {/* Link — perfil */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Link
+            to="/perfil"
+            className="flex items-center justify-between group"
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderLeft: '2px solid var(--surface-3)',
+              padding: '12px 14px',
+              transition: 'border-color 0.15s',
+              textDecoration: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderLeftColor = 'var(--accent)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderLeftColor = 'var(--surface-3)'
+            }}
+          >
+            <div>
+              <div style={{
+                fontFamily: "'Syne', sans-serif",
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--fg)',
+                letterSpacing: '0.03em',
+              }}>
+                Meu Perfil
+              </div>
+              <div style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 9,
+                color: 'var(--fg-3)',
+                letterSpacing: '0.04em',
+                marginTop: 1,
+                fontStyle: 'italic',
+              }}>
+                // ver e editar dados pessoais
+              </div>
+            </div>
+            <ChevronRight
+              size={14}
+              className="transition-transform group-hover:translate-x-1"
+              style={{ color: 'var(--fg-3)' }}
+            />
+          </Link>
         </motion.div>
 
       </main>

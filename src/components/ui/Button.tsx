@@ -21,75 +21,69 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const base =
-      'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+      'inline-flex items-center justify-center gap-2 transition-all duration-150 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest whitespace-nowrap'
 
-    const sizes = {
-      sm: 'text-sm px-3 py-1.5 h-8',
-      md: 'text-sm px-4 py-2 h-10',
-      lg: 'text-base px-6 py-3 h-12',
+    const sizeClass = {
+      sm: 'text-[11px] px-3.5 h-8',
+      md: 'text-[12px] px-5 h-10',
+      lg: 'text-[13px] px-7 h-[50px]',
     }
 
-    // Variantes com estilos inline para usar CSS vars (responsivos ao tema)
     const variantStyles: Record<string, React.CSSProperties> = {
       primary: {
-        background: 'linear-gradient(135deg, var(--accent-two), var(--accent) 52%)',
+        background: 'var(--accent)',
         color: 'var(--bg)',
-        boxShadow: '0 12px 32px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.36)',
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 700,
+        borderRadius: '4px',
       },
       secondary: {
-        background: 'var(--glass)',
-        color: 'var(--ink)',
-        border: '1px solid var(--line)',
+        background: 'transparent',
+        color: 'var(--fg)',
+        border: '1px solid var(--border-md)',
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 700,
+        borderRadius: '4px',
       },
       ghost: {
         background: 'transparent',
-        color: 'var(--muted)',
-        border: '1px solid transparent',
+        color: 'var(--fg-2)',
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 700,
+        borderRadius: '4px',
       },
       danger: {
-        background: 'rgb(220 38 38)',
-        color: 'white',
-        boxShadow: '0 8px 24px rgba(220,38,38,0.28)',
+        background: 'var(--danger)',
+        color: 'var(--bg)',
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 700,
+        borderRadius: '4px',
       },
     }
 
-    // Classes estáticas de hover (não dependem do tema)
     const variantClasses = {
-      primary:   'hover:brightness-110 hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 focus:ring-white/20',
-      secondary: 'hover:brightness-110 active:brightness-95 focus:ring-white/20',
-      ghost:     'hover:bg-white/5 hover:opacity-100 active:bg-white/5 focus:ring-white/10',
-      danger:    'hover:brightness-110 active:brightness-90 focus:ring-red-500/50',
+      primary:   'hover:brightness-110 hover:-translate-y-px active:scale-[0.97]',
+      secondary: 'hover:border-[rgba(240,237,230,0.22)] hover:bg-[rgba(240,237,230,0.04)]',
+      ghost:     'hover:text-[var(--fg)]',
+      danger:    'hover:-translate-y-px',
     }
 
     return (
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`${base} ${variantClasses[variant]} ${sizes[size]} ${className}`}
+        className={`${base} ${variantClasses[variant]} ${sizeClass[size]} ${className}`}
         style={{ ...variantStyles[variant], ...style }}
         {...props}
       >
         {loading && (
-          <svg
-            className="animate-spin h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z"
-            />
-          </svg>
+          <span
+            className="w-[13px] h-[13px] border-2 rounded-full animate-spin"
+            style={{
+              borderColor: 'rgba(5,5,10,0.3)',
+              borderTopColor: 'var(--bg)',
+            }}
+          />
         )}
         {children}
       </button>

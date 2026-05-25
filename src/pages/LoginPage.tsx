@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { ThemeSwitcher } from '../components/ui/ThemeSwitcher'
 
-// ─── Validação ───────────────────────────────────────────────────────────────
+// ─── Validação ────────────────────────────────────────────────────────────────
 
 const loginSchema = z.object({
   email: z
@@ -24,7 +24,7 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>
 
-// ─── Página ──────────────────────────────────────────────────────────────────
+// ─── Página ───────────────────────────────────────────────────────────────────
 
 export function LoginPage() {
   const { signIn } = useAuth()
@@ -35,9 +35,7 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  })
+  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
 
   async function onSubmit(data: LoginForm) {
     setErrorMessage('')
@@ -45,12 +43,12 @@ export function LoginPage() {
       await signIn(data.email, data.password)
       navigate('/dashboard', { replace: true })
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erro desconhecido'
-      if (message.includes('Invalid login credentials') || message.includes('invalid_credentials')) {
+      const msg = err instanceof Error ? err.message : ''
+      if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials')) {
         setErrorMessage('E-mail ou senha incorretos.')
-      } else if (message.includes('Email not confirmed')) {
+      } else if (msg.includes('Email not confirmed')) {
         setErrorMessage('Confirme seu e-mail antes de entrar.')
-      } else if (message.includes('Too many requests')) {
+      } else if (msg.includes('Too many requests')) {
         setErrorMessage('Muitas tentativas. Aguarde alguns minutos.')
       } else {
         setErrorMessage('Erro ao entrar. Verifique sua conexão.')
@@ -59,17 +57,24 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ background: 'var(--bg)' }}
+    >
 
-      {/* Theme switcher — canto superior direito */}
-      <div className="fixed top-5 right-5 z-50 flex items-center gap-2">
-        <span
-          className="text-xs font-light tracking-widest uppercase hidden sm:block"
-          style={{ color: 'var(--faint)' }}
-        >
-          Tema
-        </span>
+      {/* Toggle dark/light — canto superior direito */}
+      <div className="fixed top-4 right-4 z-50">
         <ThemeSwitcher />
+      </div>
+
+      {/* Grid lines decorativo */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)' }}
+      >
+        {Array.from({ length: 12 }).map((_, i) => (
+          <span key={i} style={{ borderRight: '1px solid var(--border)' }} />
+        ))}
       </div>
 
       <motion.div
@@ -79,79 +84,117 @@ export function LoginPage() {
         className="w-full max-w-sm relative z-10"
       >
 
-        {/* ── Logo ────────────────────────────────────────── */}
-        <div className="flex flex-col items-center mb-10 gap-4">
-          <div className="relative">
-            {/* Anel externo decorativo */}
+        {/* ── Brand / Rings ─────────────────────────── */}
+        <div className="flex flex-col items-center mb-8 gap-5">
+
+          {/* Anéis animados */}
+          <div
+            className="relative flex items-center justify-center"
+            style={{ width: 120, height: 120 }}
+          >
+            {/* Ring externo */}
             <div
-              className="absolute -inset-3 rounded-2xl opacity-30"
-              style={{ border: '1px solid var(--accent)' }}
-            />
-            {/* Anel médio */}
-            <div
-              className="absolute -inset-1.5 rounded-xl opacity-20"
-              style={{ border: '1px solid var(--accent-two)' }}
-            />
-            {/* Ícone */}
-            <div
-              className="relative w-16 h-16 rounded-xl flex items-center justify-center shadow-2xl"
+              className="absolute rounded-full"
               style={{
-                background: 'linear-gradient(135deg, var(--accent-two), var(--accent) 55%)',
-                boxShadow: '0 20px 48px var(--accent-glow)',
+                width: 110, height: 110,
+                border: '1px solid rgba(200,240,74,0.2)',
+                animation: 'loginSpin 28s linear infinite',
               }}
             >
-              <span
-                className="font-display text-2xl font-bold leading-none"
-                style={{ color: 'var(--bg)' }}
-              >
-                M
-              </span>
+              <div style={{
+                position: 'absolute',
+                width: 7, height: 7,
+                background: 'var(--accent)',
+                borderRadius: '50%',
+                top: 0, left: '50%',
+                transform: 'translate(-50%, -50%)',
+                boxShadow: '0 0 10px var(--accent)',
+              }} />
             </div>
+
+            {/* Ring médio */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: 78, height: 78,
+                border: '1px dashed rgba(200,240,74,0.15)',
+                animation: 'loginSpin 18s linear infinite reverse',
+              }}
+            />
+
+            {/* Ring interno */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: 50, height: 50,
+                border: '1px solid rgba(200,240,74,0.3)',
+                animation: 'loginSpin 10s linear infinite',
+              }}
+            />
+
+            {/* Core */}
+            <div style={{
+              width: 28, height: 28,
+              borderRadius: '50%',
+              background: 'var(--accent)',
+              boxShadow: '0 0 20px rgba(200,240,74,0.7), 0 0 40px rgba(200,240,74,0.25)',
+              animation: 'coreGlow 4s ease-in-out infinite',
+              position: 'relative',
+              zIndex: 2,
+            }} />
           </div>
 
+          {/* Nome */}
           <div className="text-center">
-            <h1
-              className="font-display text-3xl font-bold leading-none tracking-tight"
-              style={{ color: 'var(--ink)' }}
-            >
+            <h1 style={{
+              fontFamily: "'Syne', sans-serif",
+              fontSize: 20,
+              fontWeight: 800,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+              lineHeight: 1,
+            }}>
               MUSCLE TRAINING
             </h1>
-            <p
-              className="text-xs mt-2 tracking-[0.22em] uppercase font-light"
-              style={{ color: 'var(--faint)' }}
-            >
-              Seu treino · Sua evolução
+            <p style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              fontStyle: 'italic',
+              color: 'var(--fg-3)',
+              marginTop: 6,
+              letterSpacing: '0.08em',
+            }}>
+              // seu treino · sua evolução
             </p>
           </div>
         </div>
 
-        {/* ── Card do formulário ────────────────────────── */}
-        <div
-          className="rounded-2xl p-6 relative overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, var(--glass-strong), var(--glass)), rgba(0,0,0,0.16)',
-            border: '1px solid var(--line)',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
-            backdropFilter: 'blur(24px)',
-          }}
-        >
-          {/* Linha de destaque no topo */}
-          <div
-            className="absolute top-0 left-6 right-6 h-px opacity-60"
-            style={{ background: 'linear-gradient(90deg, transparent, var(--accent), transparent)' }}
-          />
-
-          <h2
-            className="font-display text-2xl font-bold mb-1"
-            style={{ color: 'var(--ink)' }}
-          >
+        {/* ── Formulário ──────────────────────────────── */}
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border-md)',
+          borderLeft: '2px solid var(--accent)',
+          padding: '28px 24px',
+        }}>
+          <h2 style={{
+            fontFamily: "'Syne', sans-serif",
+            fontSize: 20,
+            fontWeight: 800,
+            letterSpacing: '0.02em',
+            color: 'var(--fg)',
+            marginBottom: 4,
+          }}>
             Bem-vindo de volta
           </h2>
-          <p
-            className="text-sm font-light mb-6"
-            style={{ color: 'var(--muted)' }}
-          >
-            Entre com seu e-mail e senha para continuar
+          <p style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 12,
+            fontStyle: 'italic',
+            color: 'var(--fg-3)',
+            marginBottom: 24,
+          }}>
+            // entre com seu e-mail e senha
           </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
@@ -173,19 +216,22 @@ export function LoginPage() {
               {...register('password')}
             />
 
-            {/* Mensagem de erro */}
             {errorMessage && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="px-4 py-3 rounded-xl text-sm font-light"
                 style={{
-                  background: 'rgba(239,68,68,0.08)',
-                  border: '1px solid rgba(239,68,68,0.2)',
-                  color: 'rgb(252,165,165)',
+                  padding: '10px 14px',
+                  background: 'var(--danger-muted)',
+                  border: '1px solid rgba(248,113,113,0.2)',
+                  borderLeft: '2px solid var(--danger)',
+                  color: 'var(--danger)',
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 12,
+                  letterSpacing: '0.03em',
                 }}
               >
-                {errorMessage}
+                ⚠ {errorMessage}
               </motion.div>
             )}
 
@@ -193,21 +239,37 @@ export function LoginPage() {
               type="submit"
               size="lg"
               loading={isSubmitting}
-              className="w-full mt-2"
+              className="w-full mt-1"
             >
-              {isSubmitting ? 'Entrando...' : 'Entrar'}
+              {isSubmitting ? 'Entrando...' : 'Entrar →'}
             </Button>
           </form>
         </div>
 
-        {/* ── Rodapé ───────────────────────────────────── */}
-        <p
-          className="text-center text-xs font-light mt-6 tracking-wide"
-          style={{ color: 'var(--faint)' }}
-        >
-          Não tem conta? Fale com seu personal trainer.
+        {/* Rodapé */}
+        <p style={{
+          textAlign: 'center',
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 11,
+          fontStyle: 'italic',
+          color: 'var(--fg-3)',
+          marginTop: 20,
+        }}>
+          // não tem conta? fale com seu personal trainer.
         </p>
       </motion.div>
+
+      {/* Keyframes locais para os anéis */}
+      <style>{`
+        @keyframes loginSpin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes coreGlow {
+          0%, 100% { transform: scale(1);   box-shadow: 0 0 20px rgba(200,240,74,0.7), 0 0 40px rgba(200,240,74,0.25); }
+          50%       { transform: scale(1.2); box-shadow: 0 0 35px rgba(200,240,74,1),   0 0 60px rgba(200,240,74,0.4); }
+        }
+      `}</style>
     </div>
   )
 }

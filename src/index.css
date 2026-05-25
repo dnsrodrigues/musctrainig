@@ -1,87 +1,57 @@
 @import "tailwindcss";
 
-/* ═══════════════════════════════════════════════════════════════════
-   Design System v3 "Forge" — Cormorant Garamond + Outfit
-   Temas: Forge · Arctic · Venom · Eclipse
-   Aplicado em 23/05/2026
-═══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   Design System v2 "Nova" — Syne + DM Mono
+   Paleta: Lime #c8f04a × Dark #05050a
+   Implementado em 25/05/2026
+══════════════════════════════════════════════════════════════════ */
 
-/* ── Tipografia no @theme do Tailwind ──────────────────────────── */
 @theme {
-  --font-sans:    'Outfit', system-ui, -apple-system, sans-serif;
-  --font-mono:    'Outfit', ui-monospace, monospace;
+  --font-sans: 'DM Mono', ui-monospace, monospace;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
 }
 
-/* ── Tema padrão: Forge (Copper × Obsidian) ─────────────────────── */
-:root,
-[data-theme="forge"] {
-  --bg:           #060404;
-  --bg-soft:      #110a08;
-  --bg-hover:     #1a1208;
-  --ink:          #f8f3ed;
-  --muted:        rgba(248, 243, 237, 0.62);
-  --faint:        rgba(248, 243, 237, 0.34);
-  --line:         rgba(248, 243, 237, 0.11);
-  --glass:        rgba(255, 255, 255, 0.06);
-  --glass-strong: rgba(255, 255, 255, 0.11);
-  --accent:       #e07b45;
-  --accent-two:   #f5dcc8;
-  --accent-three: #3d6dff;
-  --accent-glow:  rgba(224, 123, 69, 0.26);
+/* ── Tokens Nova ──────────────────────────────────────────────── */
+:root {
+  --bg:            #05050a;
+  --surface:       #0e0e16;
+  --surface-2:     #15151f;
+  --surface-3:     #1c1c28;
+
+  --border:        rgba(240, 237, 230, 0.08);
+  --border-md:     rgba(240, 237, 230, 0.14);
+  --border-strong: rgba(240, 237, 230, 0.22);
+
+  --accent:        #c8f04a;
+  --accent-dark:   #b5d93e;
+  --accent-light:  #d4f464;
+  --accent-glow:   rgba(200, 240, 74, 0.2);
+  --accent-muted:  rgba(200, 240, 74, 0.1);
+
+  --success:       #4ade80;
+  --success-muted: rgba(74, 222, 128, 0.1);
+  --danger:        #f87171;
+  --danger-muted:  rgba(248, 113, 113, 0.1);
+  --warning:       #fbbf24;
+
+  --fg:            #f0ede6;
+  --fg-2:          rgba(240, 237, 230, 0.45);
+  --fg-3:          rgba(240, 237, 230, 0.2);
+
+  /* ── Aliases v3 → v2 (compatibilidade com código existente) ── */
+  --bg-soft:       var(--surface);
+  --bg-hover:      var(--surface-2);
+  --ink:           var(--fg);
+  --muted:         var(--fg-2);
+  --faint:         var(--fg-3);
+  --line:          var(--border);
+  --glass:         rgba(240, 237, 230, 0.04);
+  --glass-strong:  rgba(240, 237, 230, 0.07);
+  --accent-two:    var(--accent-light);
+  --accent-three:  var(--accent-dark);
 }
 
-/* ── Arctic (Cobalt × Ice) ────────────────────────────────────── */
-[data-theme="arctic"] {
-  --bg:           #030911;
-  --bg-soft:      #060f1e;
-  --bg-hover:     #0a1428;
-  --ink:          #eef4ff;
-  --muted:        rgba(238, 244, 255, 0.62);
-  --faint:        rgba(238, 244, 255, 0.34);
-  --line:         rgba(238, 244, 255, 0.11);
-  --glass:        rgba(88, 166, 255, 0.055);
-  --glass-strong: rgba(88, 166, 255, 0.11);
-  --accent:       #58a6ff;
-  --accent-two:   #c8e8ff;
-  --accent-three: #e07b45;
-  --accent-glow:  rgba(88, 166, 255, 0.26);
-}
-
-/* ── Venom (Lime × Dark) ─────────────────────────────────────── */
-[data-theme="venom"] {
-  --bg:           #040804;
-  --bg-soft:      #081208;
-  --bg-hover:     #0c1a0a;
-  --ink:          #f0f8ec;
-  --muted:        rgba(240, 248, 236, 0.62);
-  --faint:        rgba(240, 248, 236, 0.34);
-  --line:         rgba(240, 248, 236, 0.11);
-  --glass:        rgba(200, 240, 74, 0.048);
-  --glass-strong: rgba(200, 240, 74, 0.09);
-  --accent:       #c8f04a;
-  --accent-two:   #e8fca0;
-  --accent-three: #ff5f7a;
-  --accent-glow:  rgba(200, 240, 74, 0.22);
-}
-
-/* ── Eclipse (Silver × Void) ─────────────────────────────────── */
-[data-theme="eclipse"] {
-  --bg:           #050507;
-  --bg-soft:      #0c0c10;
-  --bg-hover:     #121218;
-  --ink:          #f0ede8;
-  --muted:        rgba(240, 237, 232, 0.62);
-  --faint:        rgba(240, 237, 232, 0.34);
-  --line:         rgba(240, 237, 232, 0.11);
-  --glass:        rgba(255, 255, 255, 0.05);
-  --glass-strong: rgba(255, 255, 255, 0.1);
-  --accent:       #d4cfc8;
-  --accent-two:   #f0ede8;
-  --accent-three: #7a5cff;
-  --accent-glow:  rgba(212, 207, 200, 0.2);
-}
-
-/* ── Reset básico ────────────────────────────────────────────── */
+/* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -94,91 +64,142 @@ html, body, #root {
 
 body {
   background: var(--bg);
-  color: var(--ink);
-  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-  font-weight: 400;
+  color: var(--fg);
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-weight: 300;
+  font-size: 13px;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 560ms ease, color 300ms ease;
   overflow-x: hidden;
 }
 
-/* ── Grain texture ────────────────────────────────────────────── */
+/* ── Textura de ruído ──────────────────────────────────────── */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    rgba(255, 255, 255, 0.8) 1px,
-    transparent 0
-  );
-  background-size: 20px 20px;
-  opacity: 0.08;
-  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.35;
   pointer-events: none;
   z-index: 0;
 }
 
-/* ── Aurora gradient — muda automaticamente com o tema ──────── */
+/* ── Orb lime ──────────────────────────────────────────────── */
 body::after {
   content: '';
   position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(
-      circle at 15% 20%,
-      color-mix(in srgb, var(--accent) 16%, transparent),
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 82% 16%,
-      color-mix(in srgb, var(--accent-three) 14%, transparent),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 50% 110%,
-      color-mix(in srgb, var(--accent-two) 12%, transparent),
-      transparent 48%
-    );
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--orb-color, rgba(200, 240, 74, 0.1)) 0%, transparent 70%);
+  top: -300px;
+  right: -200px;
   pointer-events: none;
   z-index: 0;
-  transition: background 560ms ease;
+  animation: orbPulse 10s ease-in-out infinite;
 }
 
-/* ── Conteúdo acima dos overlays ─────────────────────────────── */
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.6; }
+  50%       { transform: scale(1.15); opacity: 1;   }
+}
+
+/* ── Modo Claro ────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:            #f5f4ee;
+  --surface:       #eceae2;
+  --surface-2:     #e2e0d6;
+  --surface-3:     #d8d5ca;
+
+  --border:        rgba(10, 10, 18, 0.08);
+  --border-md:     rgba(10, 10, 18, 0.14);
+  --border-strong: rgba(10, 10, 18, 0.24);
+
+  --accent:        #5a9400;
+  --accent-dark:   #4a7a00;
+  --accent-light:  #6aab00;
+  --accent-glow:   rgba(90, 148, 0, 0.18);
+  --accent-muted:  rgba(90, 148, 0, 0.08);
+
+  --success:       #22863a;
+  --success-muted: rgba(34, 134, 58, 0.1);
+  --danger:        #d73a49;
+  --danger-muted:  rgba(215, 58, 73, 0.1);
+  --warning:       #b08800;
+
+  --fg:            #0a0a12;
+  --fg-2:          rgba(10, 10, 18, 0.55);
+  --fg-3:          rgba(10, 10, 18, 0.3);
+
+  --orb-color:     rgba(90, 148, 0, 0.07);
+
+  /* aliases v3 */
+  --bg-soft:       var(--surface);
+  --bg-hover:      var(--surface-2);
+  --ink:           var(--fg);
+  --muted:         var(--fg-2);
+  --faint:         var(--fg-3);
+  --line:          var(--border);
+  --glass:         rgba(10, 10, 18, 0.04);
+  --glass-strong:  rgba(10, 10, 18, 0.07);
+  --accent-two:    var(--accent-light);
+  --accent-three:  var(--accent-dark);
+}
+
+/* ── Conteúdo sobre os overlays ────────────────────────────── */
 #root {
   position: relative;
   z-index: 1;
 }
 
-/* ── Fonte display (Cormorant Garamond) ─────────────────────── */
+/* ── Fonte display (Syne) ───────────────────────────────────── */
 .font-display {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Syne', sans-serif;
 }
 
-/* ── Classes utilitárias de tema ─────────────────────────────── */
-.theme-bg           { background: var(--bg); }
-.theme-surface      { background: var(--bg-soft); }
-.theme-text         { color: var(--ink); }
-.theme-text-muted   { color: var(--muted); }
-.theme-text-faint   { color: var(--faint); }
-.theme-text-accent  { color: var(--accent); }
-.theme-text-accent2 { color: var(--accent-two); }
-.theme-border       { border-color: var(--line); }
-.theme-glass        { background: var(--glass); }
-.theme-glass-strong { background: var(--glass-strong); }
-.theme-accent       { background: var(--accent); }
+/* ── Classes utilitárias de tema ────────────────────────────── */
+.theme-bg            { background: var(--bg); }
+.theme-surface       { background: var(--surface); }
+.theme-text          { color: var(--fg); }
+.theme-text-muted    { color: var(--fg-2); }
+.theme-text-faint    { color: var(--fg-3); }
+.theme-text-accent   { color: var(--accent); }
+.theme-text-accent2  { color: var(--accent-light); }
+.theme-border        { border-color: var(--border); }
+.theme-glass         { background: rgba(240, 237, 230, 0.04); }
+.theme-glass-strong  { background: rgba(240, 237, 230, 0.08); }
+.theme-accent        { background: var(--accent); }
 
-/* ── Glassmorphism card (usado nas páginas) ──────────────────── */
+/* ── Card Nova ──────────────────────────────────────────────── */
 .glass-card {
-  background: linear-gradient(135deg, var(--glass-strong), var(--glass));
-  border: 1px solid var(--line);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: border-color 300ms ease;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 200ms ease;
 }
 
 .glass-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-color: var(--border-md);
+}
+
+/* ── Card com destaque lateral ──────────────────────────────── */
+.card-accent {
+  border-left: 2px solid var(--accent) !important;
+}
+
+/* ── Skeleton shimmer ───────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface)   25%,
+    var(--surface-3) 50%,
+    var(--surface)   75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite;
 }

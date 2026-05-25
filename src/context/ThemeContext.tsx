@@ -2,52 +2,46 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
-export type Theme = 'forge' | 'arctic' | 'venom' | 'eclipse'
-
-export const THEMES: { id: Theme; label: string; swatch: string; description: string }[] = [
-  { id: 'forge',   label: 'Forge',   swatch: '#e07b45', description: 'Copper × Obsidian' },
-  { id: 'arctic',  label: 'Arctic',  swatch: '#58a6ff', description: 'Cobalt × Ice'       },
-  { id: 'venom',   label: 'Venom',   swatch: '#c8f04a', description: 'Lime × Dark'         },
-  { id: 'eclipse', label: 'Eclipse', swatch: '#d4cfc8', description: 'Silver × Void'       },
-]
+export type ColorMode = 'dark' | 'light'
 
 interface ThemeContextValue {
-  theme: Theme
-  setTheme: (t: Theme) => void
+  mode: ColorMode
+  toggleMode: () => void
 }
 
 // ─── Contexto ────────────────────────────────────────────────────────────────
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'forge',
-  setTheme: () => {},
+  mode: 'dark',
+  toggleMode: () => {},
 })
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem('musc-theme')
-    return (stored as Theme) ?? 'forge'
+  const [mode, setMode] = useState<ColorMode>(() => {
+    const stored = localStorage.getItem('musc-color-mode')
+    if (stored === 'dark' || stored === 'light') return stored
+    // Detecta preferência do sistema operacional
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
   })
 
   useEffect(() => {
-    // Aplica o data-theme no <html> — todas as CSS vars mudam com isso
-    document.documentElement.dataset.theme = theme
-    localStorage.setItem('musc-theme', theme)
-  }, [theme])
+    document.documentElement.dataset.theme = mode
+    localStorage.setItem('musc-color-mode', mode)
+  }, [mode])
 
-  // Aplica na montagem inicial (sem esperar o estado mudar)
+  // Aplica na montagem inicial (sem flash)
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
+    document.documentElement.dataset.theme = mode
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function setTheme(t: Theme) {
-    setThemeState(t)
+  function toggleMode() {
+    setMode((prev) => (prev === 'dark' ? 'light' : 'dark'))
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ mode, toggleMode }}>
       {children}
     </ThemeContext.Provider>
   )

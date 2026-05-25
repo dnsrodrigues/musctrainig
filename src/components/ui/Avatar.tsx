@@ -1,7 +1,7 @@
 interface AvatarProps {
   name: string
   src?: string | null
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   className?: string
   style?: React.CSSProperties
 }
@@ -17,36 +17,46 @@ function getInitials(name: string): string {
     .toUpperCase()
 }
 
-const sizeClasses = {
-  sm:  'w-8  h-8  text-xs',
-  md:  'w-10 h-10 text-sm',
-  lg:  'w-16 h-16 text-xl',
-  xl:  'w-24 h-24 text-3xl',
+const sizeMap = {
+  xs: { px: 28, font: 10 },
+  sm: { px: 36, font: 13 },
+  md: { px: 48, font: 16 },
+  lg: { px: 64, font: 22 },
+  xl: { px: 88, font: 30 },
 }
 
 export function Avatar({ name, src, size = 'md', className = '', style }: AvatarProps) {
-  const base = `${sizeClasses[size]} rounded-xl flex-shrink-0 ${className}`
+  const { px, font } = sizeMap[size]
+
+  const baseStyle: React.CSSProperties = {
+    width: px,
+    height: px,
+    flexShrink: 0,
+    ...style,
+  }
 
   if (src) {
     return (
       <img
         src={src}
         alt={name}
-        className={`${base} object-cover`}
-        style={style}
+        className={className}
+        style={{ ...baseStyle, objectFit: 'cover' }}
       />
     )
   }
 
   return (
     <div
-      className={`${base} flex items-center justify-center font-bold select-none`}
+      className={`flex items-center justify-center select-none ${className}`}
       style={{
-        background: 'linear-gradient(135deg, var(--accent-two), var(--accent) 60%)',
+        ...baseStyle,
+        background: 'var(--accent)',
         color: 'var(--bg)',
-        fontFamily: "'Cormorant Garamond', serif",
-        letterSpacing: '0.02em',
-        ...style,
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 800,
+        fontSize: font,
+        letterSpacing: '0.08em',
       }}
       aria-label={`Avatar de ${name}`}
     >
