@@ -128,20 +128,94 @@ Login/logout via Supabase Auth. `ProtectedRoute` e `AdminRoute` protegem as rota
 ---
 
 ### FASE 6 — Execução de treino ⏳
-**Complexidade:** 🔴 Complexa → iniciar com `/brainstorming`
+**Complexidade:** 🔴 Complexa  
+**Spec:** [2026-05-26-execucao-treino-design.md](docs/superpowers/specs/2026-05-26-execucao-treino-design.md)
 
 **O que entrega:** Interface de treino ativo — o aluno registra cada série, usa o timer de descanso e finaliza o treino.
 
-**Arquivos a criar:**
+---
+
+#### Plano de implementação — ordem de execução
+
+**Passo 1 — Serviço de banco** `src/services/workout-log.service.ts`
 ```
-src/services/workout-log.service.ts
-src/pages/WorkoutSessionPage.tsx        — tela de treino ativo
-src/components/ExerciseSetRow.tsx       — linha de série (reps + carga + concluído)
-src/components/RestTimer.tsx            — timer de descanso entre séries
-src/components/WorkoutFinishModal.tsx   — modal de finalização com dificuldade
+startWorkoutSession(workoutId, userId)   → cria workout_log, retorna ID
+logExerciseSet(workoutLogId, exerciseId, { setNumber, repsCompleted, loadKg })
+                                          → cria exercise_log imediatamente
+finishWorkoutSession(workoutLogId, { difficulty, notes, durationMinutes })
+                                          → atualiza workout_log com finished_at
+deleteWorkoutSession(workoutLogId)        → apaga exercise_logs + workout_log
 ```
 
-**Ponto de entrada:** botão "Iniciar Treino" em `WorkoutDetailPage` → `/workouts/:id/session`
+**Passo 2 — Componente ExerciseSetRow** `src/components/ExerciseSetRow.tsx`
+```
+Props: setNumber, suggestedReps (string), suggestedLoad, isCompleted,
+       onChange(reps, loadKg), onComplete()
+- Inputs de reps e kg pré-preenchidos com valores sugeridos da ficha
+- Botão "✓ Feita" → onChange → onComplete
+- isCompleted=true: estilo verde, ícone substitui botão, ainda editável
+```
+
+**Passo 3 — Componente RestTimer** `src/components/RestTimer.tsx`
+```
+Props: seconds, isRunning, onPause(), onSkip()
+- Banner fixo abaixo do header — visível apenas quando seconds > 0
+- Countdown mm:ss em verde-limão
+- Botões "⏸ Pausar" e "Pular →"
+- seconds === 0: banner pulsa, texto "Pronto! Próxima série"
+- setInterval vive no pai (WorkoutSessionPage)
+```
+
+**Passo 4 — Componente WorkoutFinishModal** `src/components/WorkoutFinishModal.tsx`
+```
+Props: isOpen, durationMinutes, totalExercises, totalSets,
+       onConfirm({ difficulty, notes }), onClose(), isLoading
+- Stats: duração / exercícios / séries
+- Grid 2×2: 😊 Fácil · 💪 Médio · 🔥 Difícil · 💀 Destruidor
+- Textarea observações (opcional)
+- Botão "SALVAR TREINO →" — desabilitado até escolher dificuldade
+```
+
+**Passo 5 — Página WorkoutSessionPage** `src/pages/WorkoutSessionPage.tsx`
+```
+Estado: workoutLogId, currentExerciseIdx, setsCompleted, timerSeconds,
+        isTimerRunning, showFinishModal, startTime, isFinishing, showExitModal
+
+useEffect (montagem):
+  → getWorkoutById(id) para carregar ficha e exercícios
+  → startWorkoutSession(id, userId) → workoutLogId
+
+Layout:
+  Header: "← Sair" | nome da ficha | "Finalizar"
+  RestTimer (quando ativo)
+  Barra de progresso exercício X/Y
+  Card exercício atual (borda lime, grande):
+    Toggle "ℹ Instruções" → notas + video_url do exercício
+    ExerciseSetRow × N séries
+  Seção "// outros exercícios":
+    Cards colapsados clicáveis → setCurrentExerciseIdx
+    Badge "✓ concluído" se todas séries feitas
+  Botão ghost "// encerrar treino"
+  WorkoutFinishModal (sobreposto)
+  Modal "Sair?" com opções: "Descartar" | "Salvar incompleto"
+
+Lógica de progressão:
+  handleSetComplete → logExerciseSet → setsCompleted++ → inicia timer
+  se setsCompleted === exercise.sets → 800ms → avança exercício
+  se último exercício → abre WorkoutFinishModal automaticamente
+
+handleExit (botão ← Sair):
+  "Descartar" → deleteWorkoutSession → /workouts
+  "Salvar incompleto" → /workouts (workout_log sem finished_at)
+```
+
+**Passo 6 — Rota e botão de entrada**
+```
+App.tsx: adicionar <Route path="/workouts/:id/session" element={<WorkoutSessionPage />} />
+WorkoutDetailPage.tsx: botão "Iniciar Treino →" no topo → navigate(`/workouts/${id}/session`)
+```
+
+**Critério de conclusão:** Aluno inicia, registra séries, timer funciona, dados aparecem em `workout_logs` e `exercise_logs` no Supabase.
 
 **Critério de conclusão:** Aluno inicia treino, registra séries, timer funciona, ao finalizar os dados aparecem em `workout_logs` e `exercise_logs` no Supabase.
 
