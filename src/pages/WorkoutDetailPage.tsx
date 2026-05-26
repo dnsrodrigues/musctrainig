@@ -1,11 +1,11 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, RefreshCw, Play } from 'lucide-react'
 import { getWorkoutById } from '../services/workout.service'
-import { ExerciseRow } from '../components/ExerciseRow'
+import { Topbar } from '../components/layout/Topbar'
+import { Icon } from '../components/ui/Icon'
+import { MUSCLE_GROUP_LABELS, WEEK_DAY_LABELS } from '../types'
 import type { Workout } from '../types'
-import { WEEK_DAY_SHORT } from '../types'
 
 export function WorkoutDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -28,224 +28,229 @@ export function WorkoutDetailPage() {
     }
   }
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { void load() }, [id])
 
-  const daysLabel = workout?.week_days
-    .map((d) => WEEK_DAY_SHORT[d])
-    .join(' · ') ?? ''
+  const daysLabel = workout?.week_days.map((d) => WEEK_DAY_LABELS[d]).join(' · ') ?? ''
+  const exercises = (workout?.exercises ?? []).slice().sort((a, b) => a.order_index - b.order_index)
+  const totalSets = exercises.reduce((sum, e) => sum + (e.sets ?? 0), 0)
+
+  // Grupos musculares únicos
+  const groups = Array.from(
+    new Set(exercises.map((e) => e.exercise?.muscle_group).filter(Boolean))
+  )
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+    <>
+      <Topbar
+        eyebrow={daysLabel || 'FICHA DE TREINO'}
+        title={workout?.name?.toUpperCase() ?? '—'}
+        actions={
+          <>
+            <Link to="/workouts" className="btn ghost">
+              <Icon name="arrowL" size={14} /> Voltar
+            </Link>
+            {workout && exercises.length > 0 && (
+              <button
+                className="btn primary"
+                onClick={() => navigate(`/workouts/${id}/session`)}
+              >
+                <Icon name="play" size={12} /> Iniciar treino
+              </button>
+            )}
+          </>
+        }
+      />
 
-      {/* Grid lines decorativo */}
-      <div className="fixed inset-0 pointer-events-none z-0"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)' }}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <span key={i} style={{ borderRight: '1px solid var(--border)' }} />
-        ))}
+      <div className="content">
+        {loading && (
+          <>
+            <div className="skeleton" style={{ height: 120, borderRadius: 14 }} />
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="skeleton" style={{ height: 60, borderRadius: 14 }} />
+            ))}
+          </>
+        )}
+
+        {!loading && error && (
+          <div
+            className="card"
+            style={{ borderLeft: '2px solid var(--danger)', background: 'rgba(255,61,85,0.05)' }}
+          >
+            <div style={{ color: 'var(--danger)', marginBottom: 8 }}>⚠ {error}</div>
+            <button onClick={load} className="btn ghost">Tentar novamente</button>
+          </div>
+        )}
+
+        {!loading && !error && workout && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
+          >
+            {/* Header card: stats da ficha */}
+            <div className="card forja-detail-header">
+              <div>
+                {workout.description && (
+                  <div style={{ color: 'var(--text-dim)', fontSize: 14, marginBottom: 18 }}>
+                    {workout.description}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {groups.map((g) => (
+                    <span key={g} className="chip muscle">{MUSCLE_GROUP_LABELS[g!]}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="forja-detail-stats">
+                <div>
+                  <div className="stat-label">Exercícios</div>
+                  <div className="f-display" style={{ fontSize: 56, color: 'var(--text)' }}>
+                    {String(exercises.length).padStart(2, '0')}
+                  </div>
+                </div>
+                <div className="divider-v" style={{ height: 64, alignSelf: 'center' }} />
+                <div>
+                  <div className="stat-label">Séries totais</div>
+                  <div className="f-display" style={{ fontSize: 56, color: 'var(--accent)' }}>
+                    {totalSets}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de exercícios */}
+            {exercises.length === 0 ? (
+              <div
+                className="card"
+                style={{
+                  borderStyle: 'dashed',
+                  textAlign: 'center',
+                  padding: '40px 24px',
+                  color: 'var(--text-dim)',
+                }}
+              >
+                <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+                Nenhum exercício cadastrado nesta ficha.
+              </div>
+            ) : (
+              <div className="col gap-2">
+                <div className="label-sm" style={{ marginBottom: 8 }}>
+                  {exercises.length} exercício{exercises.length !== 1 ? 's' : ''}
+                </div>
+                {exercises.map((ex, i) => (
+                  <div
+                    key={ex.id}
+                    className="card"
+                    style={{ padding: '16px 20px' }}
+                  >
+                    <div className="forja-detail-row">
+                      <div className="pill-num" style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}>
+                        {String(i + 1).padStart(2, '0')}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          className="f-display"
+                          style={{ fontSize: 24, color: 'var(--text)', lineHeight: 1, marginBottom: 4 }}
+                        >
+                          {(ex.exercise?.name ?? 'Exercício').toUpperCase()}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                          {ex.exercise?.muscle_group && (
+                            <span className="chip muscle" style={{ fontSize: 9, padding: '2px 8px' }}>
+                              {MUSCLE_GROUP_LABELS[ex.exercise.muscle_group]}
+                            </span>
+                          )}
+                          {ex.notes && (
+                            <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
+                              {ex.notes}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="forja-detail-row-stats">
+                        <div>
+                          <div className="stat-label">Séries</div>
+                          <div className="f-mono" style={{ fontSize: 16, color: 'var(--text)', fontWeight: 600 }}>
+                            {ex.sets}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="stat-label">Reps</div>
+                          <div className="f-mono" style={{ fontSize: 16, color: 'var(--text)', fontWeight: 600 }}>
+                            {ex.reps}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="stat-label">Carga</div>
+                          <div
+                            className="f-mono"
+                            style={{ fontSize: 16, color: 'var(--accent)', fontWeight: 600 }}
+                          >
+                            {ex.suggested_load ? `${ex.suggested_load}kg` : '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="stat-label">Desc.</div>
+                          <div className="f-mono" style={{ fontSize: 16, color: 'var(--text-dim)', fontWeight: 600 }}>
+                            {ex.rest_seconds}s
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
       </div>
 
-      {/* Header */}
-      <header
-        className="sticky top-0 z-20"
-        style={{
-          padding: '14px 16px',
-          background: 'rgba(6, 7, 26,0.7)',
-          borderBottom: '1px solid var(--border)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <div className="max-w-xl mx-auto flex items-center gap-3">
-          <Link
-            to="/workouts"
-            style={{ color: 'var(--fg-3)', opacity: 0.5, display: 'flex', alignItems: 'center' }}
-          >
-            <ArrowLeft size={16} />
-          </Link>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {loading ? (
-              <div className="skeleton" style={{ height: 18, width: 160, borderRadius: 3 }} />
-            ) : (
-              <>
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 9,
-                  color: 'var(--fg-3)',
-                  letterSpacing: '0.15em',
-                  textTransform: 'uppercase',
-                  marginBottom: 1,
-                }}>
-                  {daysLabel || '// ficha de treino'}
-                </div>
-                <div style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 16,
-                  color: 'var(--fg)',
-                  letterSpacing: '-0.01em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {workout?.name ?? '—'}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <style>{`
+        .forja-detail-header {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 32px;
+          align-items: center;
+        }
+        .forja-detail-stats {
+          display: flex;
+          gap: 32px;
+          align-items: center;
+        }
+        .forja-detail-row {
+          display: grid;
+          grid-template-columns: 40px 1fr auto;
+          gap: 18px;
+          align-items: center;
+        }
+        .forja-detail-row-stats {
+          display: flex;
+          gap: 24px;
+          align-items: center;
+        }
 
-      {/* Conteúdo */}
-      <main className="relative z-10">
-        <div className="max-w-xl mx-auto" style={{ padding: '20px 16px 40px' }}>
-
-          {/* Loading */}
-          {loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="skeleton" style={{ height: 64, borderRadius: 4 }} />
-              ))}
-            </div>
-          )}
-
-          {/* Erro */}
-          {!loading && error && (
-            <div style={{
-              borderLeft: '2px solid var(--danger)',
-              background: 'rgba(239,68,68,0.05)',
-              borderRadius: '0 4px 4px 0',
-              padding: '12px 16px',
-            }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--danger)', marginBottom: 6 }}>
-                ⚠ {error}
-              </div>
-              <button
-                onClick={load}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: 'transparent',
-                  border: '1px solid var(--border-md)',
-                  borderRadius: 4,
-                  padding: '5px 12px',
-                  color: 'var(--fg-2)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  letterSpacing: '0.1em',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                }}
-              >
-                <RefreshCw size={10} /> Tentar novamente
-              </button>
-            </div>
-          )}
-
-          {/* Botão Iniciar Treino */}
-          {!loading && !error && workout && workout.exercises && workout.exercises.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ marginBottom: 16 }}
-            >
-              <button
-                onClick={() => navigate(`/workouts/${id}/session`)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  background: 'var(--accent)',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '14px',
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 13,
-                  color: '#05050a',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.15s',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.88')}
-                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-              >
-                <Play size={15} fill="var(--bg)" strokeWidth={0} />
-                Iniciar Treino
-              </button>
-            </motion.div>
-          )}
-
-          {/* Lista de exercícios */}
-          {!loading && !error && workout && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Descrição (se tiver) */}
-              {workout.description && (
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 11,
-                  color: 'var(--fg-3)',
-                  fontStyle: 'italic',
-                  marginBottom: 16,
-                  paddingBottom: 16,
-                  borderBottom: '1px solid var(--border)',
-                }}>
-                  // {workout.description}
-                </div>
-              )}
-
-              {/* Contador */}
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: 'var(--fg-3)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                marginBottom: 10,
-              }}>
-                // {workout.exercises?.length ?? 0} exercícios
-              </div>
-
-              {/* Exercícios */}
-              {(!workout.exercises || workout.exercises.length === 0) ? (
-                <div style={{
-                  border: '1px dashed var(--border)',
-                  borderRadius: 4,
-                  padding: '24px',
-                  textAlign: 'center',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  color: 'var(--fg-3)',
-                  fontStyle: 'italic',
-                }}>
-                  // nenhum exercício cadastrado nesta ficha
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {workout.exercises
-                    .slice()
-                    .sort((a, b) => a.order_index - b.order_index)
-                    .map((ex, idx) => (
-                      <ExerciseRow
-                        key={ex.id}
-                        item={ex as any}
-                        index={idx}
-                        editable={false}
-                      />
-                    ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-        </div>
-      </main>
-    </div>
+        @media (max-width: 900px) {
+          .forja-detail-header {
+            grid-template-columns: 1fr;
+            gap: 18px;
+          }
+          .forja-detail-stats {
+            justify-content: flex-start;
+          }
+          .forja-detail-row {
+            grid-template-columns: 40px 1fr;
+            gap: 14px;
+          }
+          .forja-detail-row-stats {
+            grid-column: 1 / -1;
+            justify-content: space-between;
+            gap: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--hairline);
+          }
+        }
+      `}</style>
+    </>
   )
 }

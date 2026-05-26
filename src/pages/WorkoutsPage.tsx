@@ -1,13 +1,14 @@
-﻿import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getMyWorkouts } from '../services/workout.service'
-import { WorkoutCard } from '../components/WorkoutCard'
-import type { Workout, WeekDay } from '../types'
+import { getWorkoutHistory } from '../services/history.service'
+import { Topbar } from '../components/layout/Topbar'
+import { Icon } from '../components/ui/Icon'
+import type { Workout, WeekDay, WorkoutLog } from '../types'
+import { MUSCLE_GROUP_LABELS, WEEK_DAY_LABELS, WEEK_DAY_SHORT } from '../types'
 
-// Mapeia getDay() → WeekDay
 const DAY_MAP: Record<number, WeekDay> = {
   0: 'sunday',
   1: 'monday',
@@ -18,36 +19,38 @@ const DAY_MAP: Record<number, WeekDay> = {
   6: 'saturday',
 }
 
-const DAY_LABEL_PT: Record<WeekDay, string> = {
-  monday: 'segunda-feira',
-  tuesday: 'terça-feira',
-  wednesday: 'quarta-feira',
-  thursday: 'quinta-feira',
-  friday: 'sexta-feira',
-  saturday: 'sábado',
-  sunday: 'domingo',
-}
+const WEEK_ORDER: WeekDay[] = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+]
 
 export function WorkoutsPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
 
   const [workouts, setWorkouts] = useState<Workout[]>([])
+  const [history, setHistory] = useState<WorkoutLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const todayKey = DAY_MAP[new Date().getDay()]
-  const todayLabel = DAY_LABEL_PT[todayKey]
-  const todayWorkout = workouts.find((w) => w.week_days.includes(todayKey))
-  const otherWorkouts = workouts.filter((w) => !w.week_days.includes(todayKey))
 
   async function load() {
     if (!profile?.id) return
     setLoading(true)
     setError(null)
     try {
-      const data = await getMyWorkouts(profile.id)
-      setWorkouts(data)
+      const [w, h] = await Promise.all([
+        getMyWorkouts(profile.id),
+        getWorkoutHistory(profile.id),
+      ])
+      setWorkouts(w)
+      setHistory(h)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar fichas')
     } finally {
@@ -55,244 +58,312 @@ export function WorkoutsPage() {
     }
   }
 
-  useEffect(() => { load() }, [profile?.id])
+  useEffect(() => { void load() }, [profile?.id])
+
+  // Stats da semana
+  const now = new Date()
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)) // segunda-feira
+  weekStart.setHours(0, 0, 0, 0)
+  const sessionsThisWeek = history.filter((h) => {
+    return new Date(h.started_at).getTime() >= weekStart.getTime()
+  })
+
+  const totalDuration = sessionsThisWeek.reduce((sum, s) => sum + (s.duration_minutes ?? 0), 0)
+
+  // Constrói a "semana" — uma linha por dia útil + ficha (ou descanso)
+  const weekDays = WEEK_ORDER.map((day) => {
+    const workout = workouts.find((w) => w.week_days.includes(day))
+    const isToday = day === todayKey
+    const sessionForToday = workout
+      ? sessionsThisWeek.find((s) => {
+          const d = new Date(s.started_at)
+          return DAY_MAP[d.getDay()] === day
+        })
+      : undefined
+    return {
+      day,
+      workout,
+      isToday,
+      done: Boolean(sessionForToday),
+    }
+  })
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+    <>
+      <Topbar
+        eyebrow={`MINHA ROTINA · SEMANA ${weekDays.filter((d) => d.workout).length} DIAS`}
+        title="PLANO DA SEMANA"
+        actions={
+          <>
+            {(() => {
+              const today = weekDays.find((d) => d.isToday)
+              if (today?.workout && !today.done) {
+                return (
+                  <button
+                    className="btn primary"
+                    onClick={() => navigate(`/workouts/${today.workout!.id}/session`)}
+                  >
+                    <Icon name="play" size={12} /> Iniciar treino
+                  </button>
+                )
+              }
+              return null
+            })()}
+          </>
+        }
+      />
 
-      {/* Grid lines decorativo */}
-      <div className="fixed inset-0 pointer-events-none z-0"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)' }}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <span key={i} style={{ borderRight: '1px solid var(--border)' }} />
-        ))}
-      </div>
-
-      {/* Header */}
-      <header
-        className="sticky top-0 z-20"
-        style={{
-          padding: '14px 16px',
-          background: 'rgba(6, 7, 26,0.7)',
-          borderBottom: '1px solid var(--border)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <div className="max-w-xl mx-auto flex items-center gap-3">
-          <Link
-            to="/dashboard"
-            style={{ color: 'var(--fg-3)', opacity: 0.5, display: 'flex', alignItems: 'center' }}
-          >
-            <ArrowLeft size={16} />
-          </Link>
-          <div>
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: 'var(--fg-3)',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              marginBottom: 1,
-            }}>
-              // {todayLabel}
+      <div className="content">
+        {/* Stats */}
+        <div className="forja-workouts-stats">
+          <div className="card">
+            <div className="stat-label">Concluídos</div>
+            <div className="f-display" style={{ fontSize: 48, color: 'var(--success)' }}>
+              {loading ? '…' : `${sessionsThisWeek.length} / ${weekDays.filter((d) => d.workout).length}`}
             </div>
-            <div style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 800,
-              fontSize: 16,
-              color: 'var(--fg)',
-              letterSpacing: '-0.01em',
-            }}>
-              Minhas Fichas
+          </div>
+          <div className="card">
+            <div className="stat-label">Tempo · semana</div>
+            <div className="f-display" style={{ fontSize: 48, color: 'var(--text)' }}>
+              {loading ? '…' : totalDuration}
+              <span className="stat-unit" style={{ fontSize: 14 }}>min</span>
+            </div>
+          </div>
+          <div className="card">
+            <div className="stat-label">Fichas ativas</div>
+            <div className="f-display" style={{ fontSize: 48, color: 'var(--accent)' }}>
+              {loading ? '…' : workouts.length}
+            </div>
+          </div>
+          <div className="card">
+            <div className="stat-label">Histórico total</div>
+            <div className="f-display" style={{ fontSize: 48, color: 'var(--text)' }}>
+              {loading ? '…' : history.length}
             </div>
           </div>
         </div>
-      </header>
 
-      {/* Conteúdo */}
-      <main className="relative z-10">
-        <div className="max-w-xl mx-auto" style={{ padding: '20px 16px 40px' }}>
+        {/* Erro */}
+        {!loading && error && (
+          <div
+            className="card"
+            style={{ borderLeft: '2px solid var(--danger)', background: 'rgba(255,61,85,0.05)' }}
+          >
+            <div style={{ color: 'var(--danger)', marginBottom: 8 }}>⚠ {error}</div>
+            <button onClick={load} className="btn ghost">
+              Tentar novamente
+            </button>
+          </div>
+        )}
 
-          {/* Loading */}
-          {loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="skeleton"
-                  style={{ height: 76, borderRadius: 4 }}
-                />
-              ))}
+        {/* Sem fichas */}
+        {!loading && !error && workouts.length === 0 && (
+          <div
+            className="card"
+            style={{ borderStyle: 'dashed', textAlign: 'center', padding: '40px 24px' }}
+          >
+            <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
+            <h2 className="f-display" style={{ fontSize: 28, color: 'var(--text)', marginBottom: 6 }}>
+              NENHUMA FICHA AINDA
+            </h2>
+            <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+              Seu personal ainda não criou fichas para você.
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Erro */}
-          {!loading && error && (
-            <div style={{
-              borderLeft: '2px solid var(--danger)',
-              background: 'rgba(239,68,68,0.05)',
-              borderRadius: '0 4px 4px 0',
-              padding: '12px 16px',
-              marginBottom: 16,
-            }}>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--danger)', marginBottom: 6 }}>
-                ⚠ {error}
-              </div>
-              <button
-                onClick={load}
+        {/* Lista de dias */}
+        {!loading && !error && workouts.length > 0 && (
+          <div className="col gap-3">
+            {weekDays.map(({ day, workout, isToday, done }, i) => (
+              <motion.div
+                key={day}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.04 }}
+                className="card"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: 'transparent',
-                  border: '1px solid var(--border-md)',
-                  borderRadius: 4,
-                  padding: '5px 12px',
-                  color: 'var(--fg-2)',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  letterSpacing: '0.1em',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
+                  padding: 0,
+                  borderColor: isToday ? 'var(--accent)' : 'var(--hairline)',
+                  borderLeft: isToday ? '3px solid var(--accent)' : '1px solid var(--hairline)',
+                  opacity: !workout ? 0.7 : 1,
+                  cursor: workout ? 'pointer' : 'default',
+                  transition: 'border-color 0.15s',
                 }}
+                onClick={() => workout && navigate(`/workouts/${workout.id}`)}
               >
-                <RefreshCw size={10} /> Tentar novamente
-              </button>
-            </div>
-          )}
+                <div className="forja-workouts-row">
+                  {/* Dia */}
+                  <div className="forja-workouts-day">
+                    <div
+                      className="label-sm"
+                      style={{ color: isToday ? 'var(--accent)' : 'var(--text-dim)' }}
+                    >
+                      {WEEK_DAY_LABELS[day].toUpperCase()}
+                    </div>
+                    <div style={{ marginTop: 6, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {!workout && <span className="chip">DESCANSO</span>}
+                      {workout && done && <span className="chip success">CONCLUÍDO</span>}
+                      {workout && isToday && !done && <span className="chip solid">HOJE</span>}
+                      {workout && !isToday && !done && <span className="chip">PROGRAMADO</span>}
+                    </div>
+                  </div>
 
-          {/* Sem fichas */}
-          {!loading && !error && workouts.length === 0 && (
-            <div style={{
-              border: '1px dashed var(--border)',
-              borderRadius: 4,
-              padding: '32px 24px',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
-              <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 14, color: 'var(--fg)', marginBottom: 4 }}>
-                Nenhuma ficha ainda
-              </div>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic' }}>
-                // seu personal ainda não criou fichas para você
-              </div>
-            </div>
-          )}
+                  {/* Treino */}
+                  <div>
+                    <h2
+                      className="f-display"
+                      style={{ fontSize: 36, margin: 0, lineHeight: 1, color: 'var(--text)' }}
+                    >
+                      {workout ? workout.name.toUpperCase() : 'DESCANSO'}
+                    </h2>
+                    {workout && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                        {(() => {
+                          const groups = Array.from(
+                            new Set(
+                              (workout.exercises ?? [])
+                                .map((e) => e.exercise?.muscle_group)
+                                .filter(Boolean)
+                            )
+                          )
+                          return groups.slice(0, 3).map((g) => (
+                            <span key={g} className="chip muscle">
+                              {MUSCLE_GROUP_LABELS[g!]}
+                            </span>
+                          ))
+                        })()}
+                      </div>
+                    )}
+                  </div>
 
-          {/* Ficha de hoje — destaque */}
-          {!loading && !error && todayWorkout && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ marginBottom: 20 }}
-            >
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: 'var(--accent)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}>
-                // recomendado hoje
-              </div>
-              <div
-                onClick={() => navigate(`/workouts/${todayWorkout.id}`)}
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--accent)',
-                  borderLeft: '3px solid var(--accent)',
-                  borderRadius: 4,
-                  padding: '18px 16px',
-                  cursor: 'pointer',
-                  boxShadow: '0 0 24px rgba(108, 142, 247,0.06)',
-                }}
-              >
-                <div style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 18,
-                  color: 'var(--fg)',
-                  marginBottom: 4,
-                }}>
-                  {todayWorkout.name}
+                  {/* Stats + ação */}
+                  <div className="forja-workouts-actions">
+                    {workout && (
+                      <div style={{ display: 'flex', gap: 22 }}>
+                        <div>
+                          <div className="stat-label">Exerc.</div>
+                          <div className="f-display" style={{ fontSize: 24, color: 'var(--text)' }}>
+                            {workout.exercises?.length ?? 0}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="stat-label">Séries</div>
+                          <div className="f-display" style={{ fontSize: 24, color: 'var(--text)' }}>
+                            {(workout.exercises ?? []).reduce((sum, e) => sum + (e.sets ?? 0), 0)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {workout && isToday && !done && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/workouts/${workout.id}/session`)
+                        }}
+                        className="btn primary"
+                      >
+                        <Icon name="play" size={12} /> Iniciar
+                      </button>
+                    )}
+                    {workout && (!isToday || done) && (
+                      <button
+                        className="btn ghost"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/workouts/${workout.id}`)
+                        }}
+                      >
+                        Ver <Icon name="arrow" size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  color: 'var(--fg-3)',
-                  marginBottom: 14,
-                }}>
-                  {todayWorkout.exercises?.length ?? 0} exercícios
-                </div>
-                <div style={{
-                  background: 'var(--accent)',
-                  color: 'var(--bg)',
-                  fontFamily: "'Outfit', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 11,
-                  letterSpacing: '0.15em',
-                  textTransform: 'uppercase',
-                  padding: '10px 16px',
-                  textAlign: 'center',
-                  borderRadius: 2,
-                }}>
-                  Ver Treino →
-                </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            ))}
+          </div>
+        )}
 
-          {/* Outras fichas */}
-          {!loading && !error && otherWorkouts.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              {todayWorkout && (
-                <div style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 9,
-                  color: 'var(--fg-3)',
-                  letterSpacing: '0.15em',
-                  textTransform: 'uppercase',
-                  marginBottom: 8,
-                }}>
-                  // outras fichas
-                </div>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {otherWorkouts.map((workout) => (
-                  <WorkoutCard
-                    key={workout.id}
-                    workout={workout}
-                    onClick={() => navigate(`/workouts/${workout.id}`)}
-                  />
+        {loading && (
+          <div className="col gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="skeleton" style={{ height: 88, borderRadius: 14 }} />
+            ))}
+          </div>
+        )}
+
+        {/* Loading dummy var usado só para evitar warning */}
+        <div style={{ display: 'none' }}>{WEEK_DAY_SHORT[todayKey]}</div>
+
+        {/* Fallback: lista de fichas que não estão em nenhum dia da semana */}
+        {!loading && !error && workouts.length > 0 && (() => {
+          const unscheduled = workouts.filter((w) => w.week_days.length === 0)
+          if (unscheduled.length === 0) return null
+          return (
+            <div style={{ marginTop: 16 }}>
+              <Link to="#" className="label-sm" style={{ textDecoration: 'none' }}>
+                Fichas sem agendamento ({unscheduled.length})
+              </Link>
+              <div className="col gap-2" style={{ marginTop: 10 }}>
+                {unscheduled.map((w) => (
+                  <div
+                    key={w.id}
+                    className="card"
+                    style={{ cursor: 'pointer', padding: '14px 18px' }}
+                    onClick={() => navigate(`/workouts/${w.id}`)}
+                  >
+                    <div
+                      className="f-display"
+                      style={{ fontSize: 22, color: 'var(--text)' }}
+                    >
+                      {w.name.toUpperCase()}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                      {w.exercises?.length ?? 0} exercícios — sem dia agendado
+                    </div>
+                  </div>
                 ))}
               </div>
-            </motion.div>
-          )}
+            </div>
+          )
+        })()}
+      </div>
 
-          {/* Lista completa quando não há ficha de hoje */}
-          {!loading && !error && workouts.length > 0 && !todayWorkout && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-            >
-              {workouts.map((workout) => (
-                <WorkoutCard
-                  key={workout.id}
-                  workout={workout}
-                  onClick={() => navigate(`/workouts/${workout.id}`)}
-                />
-              ))}
-            </motion.div>
-          )}
+      <style>{`
+        .forja-workouts-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 14px;
+        }
+        .forja-workouts-row {
+          display: grid;
+          grid-template-columns: 160px 1fr auto;
+          align-items: center;
+          padding: 22px 26px;
+          gap: 24px;
+        }
+        .forja-workouts-day { min-width: 0; }
+        .forja-workouts-actions {
+          display: flex;
+          align-items: center;
+          gap: 28px;
+        }
 
-        </div>
-      </main>
-    </div>
+        @media (max-width: 900px) {
+          .forja-workouts-stats { grid-template-columns: repeat(2, 1fr); }
+          .forja-workouts-row {
+            grid-template-columns: 1fr;
+            gap: 14px;
+            padding: 18px 20px;
+          }
+          .forja-workouts-actions {
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
+    </>
   )
 }

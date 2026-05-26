@@ -1,7 +1,6 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { X, ChevronDown, ChevronUp, ExternalLink, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getWorkoutById } from '../services/workout.service'
 import {
@@ -10,46 +9,61 @@ import {
   finishWorkoutSession,
   deleteWorkoutSession,
 } from '../services/workout-log.service'
-import { getLastSetData } from '../services/history.service'
-import type { LastSetRecord } from '../services/history.service'
-import { ExerciseSetRow } from '../components/ExerciseSetRow'
-import { RestTimer } from '../components/RestTimer'
+import { getLastSetData, type LastSetRecord } from '../services/history.service'
+import { Icon } from '../components/ui/Icon'
 import { WorkoutFinishModal } from '../components/WorkoutFinishModal'
 import { MUSCLE_GROUP_LABELS } from '../types'
 import type { Workout, WorkoutExercise } from '../types'
 
-// ─────────────────────────────────────────────────────────────────
-// Tipos locais
-// ─────────────────────────────────────────────────────────────────
+type Layout = 'A' | 'B'
 
-type ExitChoice = 'discard' | 'save' | null
+function formatMMSS(s: number) {
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+}
 
-// ─────────────────────────────────────────────────────────────────
-// Página principal
-// ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// PÁGINA
+// ═══════════════════════════════════════════════════════════════════
 
 export function WorkoutSessionPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
 
+  // ── Layout preference ─────────────────────────────────────────────
+  const [layout, setLayout] = useState<Layout>(() => {
+    const v = localStorage.getItem('forja-workout-layout')
+    return v === 'B' ? 'B' : 'A'
+  })
+  useEffect(() => { localStorage.setItem('forja-workout-layout', layout) }, [layout])
+
   // ── Dados da ficha ──
   const [workout, setWorkout] = useState<Workout | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [isBooting, setIsBooting] = useState(true)  // carregamento inicial
+  const [isBooting, setIsBooting] = useState(true)
 
   // ── Sessão ──
   const [workoutLogId, setWorkoutLogId] = useState<string | null>(null)
   const startTimeRef = useRef<Date>(new Date())
 
+  // ── Tempo decorrido ──
+  const [elapsedSec, setElapsedSec] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTimeRef.current.getTime()) / 1000))
+    }, 1000)
+    return () => clearInterval(t)
+  }, [])
+
   // ── Navegação entre exercícios ──
   const [currentIdx, setCurrentIdx] = useState(0)
-  const [expandedInstructions, setExpandedInstructions] = useState(false)
 
   // ── Séries concluídas: Record<workoutExercise.id, número de séries feitas> ──
   const [setsCompleted, setSetsCompleted] = useState<Record<string, number>>({})
 
-  // ── Histórico da última sessão: { [exerciseLibraryId]: { [setNumber]: {reps, loadKg} } }
+  // ── Histórico da última sessão ──
   const [lastSetData, setLastSetData] = useState<Record<string, Record<number, LastSetRecord>>>({})
 
   // ── Timer de descanso ──
@@ -61,11 +75,11 @@ export function WorkoutSessionPage() {
   const [showFinishModal, setShowFinishModal] = useState(false)
   const [showExitModal, setShowExitModal] = useState(false)
   const [isFinishing, setIsFinishing] = useState(false)
-  const [exitChoice, setExitChoice] = useState<ExitChoice>(null)
+  const [exitChoice, setExitChoice] = useState<'discard' | 'save' | null>(null)
   const [isExiting, setIsExiting] = useState(false)
 
   // ─────────────────────────────────────────────────────────────────
-  // Inicialização: carrega ficha + cria workout_log
+  // Boot — carrega ficha e cria workout_log
   // ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -76,16 +90,11 @@ export function WorkoutSessionPage() {
       try {
         const data = await getWorkoutById(id!)
         if (!data) throw new Error('Ficha não encontrada')
-
-        // Ordena exercícios por order_index
-        if (data.exercises) {
-          data.exercises.sort((a, b) => a.order_index - b.order_index)
-        }
+        if (data.exercises) data.exercises.sort((a, b) => a.order_index - b.order_index)
         setWorkout(data)
 
-        // Busca histórico da última sessão para pré-preencher os inputs
         const exerciseLibraryIds = (data.exercises ?? [])
-          .map(ex => ex.exercise?.id)
+          .map((ex) => ex.exercise?.id)
           .filter((id): id is string => Boolean(id))
 
         if (exerciseLibraryIds.length > 0) {
@@ -93,7 +102,6 @@ export function WorkoutSessionPage() {
           setLastSetData(lastData)
         }
 
-        // Cria sessão no banco
         const logId = await startWorkoutSession(id!, profile!.id)
         setWorkoutLogId(logId)
         startTimeRef.current = new Date()
@@ -103,7 +111,6 @@ export function WorkoutSessionPage() {
         setIsBooting(false)
       }
     }
-
     boot()
   }, [id, profile])
 
@@ -117,26 +124,27 @@ export function WorkoutSessionPage() {
         setTimerSeconds((s) => {
           if (s <= 1) {
             setIsTimerRunning(false)
-            clearInterval(timerRef.current!)
+            if (timerRef.current) clearInterval(timerRef.current)
             return 0
           }
           return s - 1
         })
       }, 1000)
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current)
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current)
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [isTimerRunning])
+  }, [isTimerRunning, timerSeconds])
 
   function startTimer(seconds: number) {
     if (timerRef.current) clearInterval(timerRef.current)
     setTimerSeconds(seconds)
     setIsTimerRunning(true)
   }
-
-  function pauseTimer() { setIsTimerRunning(false) }
-  function resumeTimer() { if (timerSeconds > 0) setIsTimerRunning(true) }
+  function adjustTimer(delta: number) {
+    setTimerSeconds((s) => Math.max(0, s + delta))
+    if (!isTimerRunning && timerSeconds + delta > 0) setIsTimerRunning(true)
+  }
   function skipTimer() {
     if (timerRef.current) clearInterval(timerRef.current)
     setTimerSeconds(0)
@@ -144,7 +152,7 @@ export function WorkoutSessionPage() {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Registrar série concluída
+  // Registrar série
   // ─────────────────────────────────────────────────────────────────
 
   const handleSetComplete = useCallback(async (
@@ -155,7 +163,6 @@ export function WorkoutSessionPage() {
   ) => {
     if (!workoutLogId || !exercise.exercise) return
 
-    // Salva no banco (fire-and-handle)
     try {
       await logExerciseSet(workoutLogId, exercise.exercise.id, {
         setNumber,
@@ -164,51 +171,36 @@ export function WorkoutSessionPage() {
       })
     } catch (err) {
       console.error('Erro ao salvar série:', err)
-      // Não bloqueia o fluxo — aluno continua o treino
     }
 
-    // Atualiza estado local
     setSetsCompleted((prev) => {
       const next = { ...prev, [exercise.id]: (prev[exercise.id] ?? 0) + 1 }
 
-      // Inicia timer de descanso
-      if (exercise.rest_seconds > 0) {
-        startTimer(exercise.rest_seconds)
-      }
+      if (exercise.rest_seconds > 0) startTimer(exercise.rest_seconds)
 
-      // Verificar se terminou todas as séries deste exercício
       if (next[exercise.id] >= exercise.sets) {
         const allExercises = workout?.exercises ?? []
         const isLast = currentIdx >= allExercises.length - 1
-
-        // Só abre o modal quando TODOS os exercícios estiverem concluídos
-        const allDone = allExercises.every(ex => (next[ex.id] ?? 0) >= ex.sets)
+        const allDone = allExercises.every((ex) => (next[ex.id] ?? 0) >= ex.sets)
 
         setTimeout(() => {
           if (allDone) {
-            // Todos os exercícios concluídos — abre modal de finalização
             skipTimer()
             setShowFinishModal(true)
           } else if (!isLast) {
-            // Avança para o próximo, mas só se o aluno não navegou manualmente
-            // durante o intervalo de 800ms (evita pular exercícios)
             setCurrentIdx((i) => {
               if (i === currentIdx) return currentIdx + 1
-              return i // aluno navegou manualmente — respeita a escolha dele
+              return i
             })
-            setExpandedInstructions(false)
           }
-          // Se é o último por índice mas ainda há exercícios pendentes:
-          // não avança automaticamente — aluno navega pela lista abaixo
         }, 800)
       }
-
       return next
     })
   }, [workoutLogId, workout, currentIdx])
 
   // ─────────────────────────────────────────────────────────────────
-  // Finalizar treino
+  // Finalizar / Sair
   // ─────────────────────────────────────────────────────────────────
 
   async function handleFinish(data: { difficulty: string; notes: string }) {
@@ -228,10 +220,6 @@ export function WorkoutSessionPage() {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // Sair do treino
-  // ─────────────────────────────────────────────────────────────────
-
   async function handleExit(choice: 'discard' | 'save') {
     setExitChoice(choice)
     setIsExiting(true)
@@ -248,46 +236,27 @@ export function WorkoutSessionPage() {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Computed values
+  // Derived
   // ─────────────────────────────────────────────────────────────────
 
   const exercises = workout?.exercises ?? []
   const currentExercise = exercises[currentIdx] ?? null
-
-  function isExerciseDone(ex: WorkoutExercise) {
-    return (setsCompleted[ex.id] ?? 0) >= ex.sets
-  }
-
+  const isExerciseDone = (ex: WorkoutExercise) => (setsCompleted[ex.id] ?? 0) >= ex.sets
   const exercisesDone = exercises.filter(isExerciseDone).length
-  const exercisesLeft = exercises.length - exercisesDone
   const totalSets = Object.values(setsCompleted).reduce((a, b) => a + b, 0)
 
   // ─────────────────────────────────────────────────────────────────
-  // Estado de erro/boot
+  // States: boot, error
   // ─────────────────────────────────────────────────────────────────
 
   if (isBooting) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="content" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontWeight: 800,
-            fontSize: 18,
-            color: 'var(--accent)',
-            marginBottom: 8,
-            letterSpacing: '-0.01em',
-          }}>
-            Iniciando treino...
+          <div className="f-display" style={{ fontSize: 40, color: 'var(--accent)' }}>
+            INICIANDO TREINO
           </div>
-          <div style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
-            color: 'var(--fg-3)',
-            letterSpacing: '0.1em',
-          }}>
-            // preparando sessão
-          </div>
+          <div className="label-sm" style={{ marginTop: 8 }}>// preparando sessão</div>
         </div>
       </div>
     )
@@ -295,678 +264,841 @@ export function WorkoutSessionPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-        <div style={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--danger)', marginBottom: 12 }}>
-            ⚠ {loadError}
-          </div>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border-md)',
-              borderRadius: 4,
-              padding: '8px 16px',
-              color: 'var(--fg-2)',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
-              cursor: 'pointer',
-            }}
-          >
-            ← Voltar
+      <div className="content">
+        <div className="card" style={{ textAlign: 'center', padding: 32 }}>
+          <div style={{ color: 'var(--danger)', marginBottom: 12 }}>⚠ {loadError}</div>
+          <button onClick={() => navigate(-1)} className="btn ghost">
+            <Icon name="arrowL" size={14} /> Voltar
           </button>
         </div>
       </div>
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // Render principal
-  // ─────────────────────────────────────────────────────────────────
+  if (!currentExercise) return null
+
+  // ═══════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-
-      {/* Grid lines decorativo */}
-      <div className="fixed inset-0 pointer-events-none z-0"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)' }}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <span key={i} style={{ borderRight: '1px solid var(--border)' }} />
-        ))}
-      </div>
-
-      {/* ── HEADER ── */}
-      <header
-        className="sticky top-0 z-30"
-        style={{
-          padding: '12px 16px',
-          background: 'rgba(6, 7, 26,0.85)',
-          borderBottom: '1px solid var(--border)',
-          backdropFilter: 'blur(12px)',
-        }}
+    <>
+      {/* ─── TOPBAR ───────────────────────────────────────── */}
+      <div
+        className="topbar"
+        style={layout === 'B' ? { background: 'var(--accent)', color: 'var(--accent-fg)', borderBottom: 'none' } : undefined}
       >
-        <div className="max-w-xl mx-auto flex items-center gap-3">
-          {/* Sair */}
-          <button
-            onClick={() => setShowExitModal(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--fg-3)',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
-              letterSpacing: '0.08em',
-              cursor: 'pointer',
-              padding: '4px 0',
-              flexShrink: 0,
-            }}
+        <div className="topbar-left">
+          <div
+            className="topbar-title"
+            style={layout === 'B' ? { color: 'var(--accent-fg)' } : undefined}
           >
-            <X size={14} /> Sair
-          </button>
-
-          {/* Nome da ficha */}
-          <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-            <div style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 800,
-              fontSize: 15,
-              color: 'var(--fg)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              letterSpacing: '-0.01em',
-            }}>
-              {workout?.name}
-            </div>
+            {layout === 'B' ? `EM TREINO · ${formatMMSS(elapsedSec)}` : 'TREINO EM EXECUÇÃO'}
           </div>
-
-          {/* Finalizar */}
-          <button
-            onClick={() => { skipTimer(); setShowFinishModal(true) }}
-            style={{
-              background: 'var(--accent-muted)',
-              border: '1px solid var(--accent-glow)',
-              borderRadius: 4,
-              padding: '5px 10px',
-              color: 'var(--accent)',
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
+          <div
+            className="topbar-sub"
+            style={layout === 'B' ? { color: 'rgba(0,0,0,0.55)' } : undefined}
           >
-            Finalizar
-          </button>
+            {workout?.name}
+          </div>
         </div>
-      </header>
-
-      {/* ── TIMER BANNER ── */}
-      <div className="sticky z-20" style={{ top: 49 }}>
-        <div className="max-w-xl mx-auto">
-          <RestTimer
-            seconds={timerSeconds}
-            isRunning={isTimerRunning}
-            onPause={pauseTimer}
-            onResume={resumeTimer}
-            onSkip={skipTimer}
-          />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {layout === 'A' && (
+            <span className="chip danger">
+              <span style={{ width: 6, height: 6, borderRadius: 99, background: 'currentColor' }} />
+              AO VIVO {formatMMSS(elapsedSec)}
+            </span>
+          )}
+          <button
+            className="btn ghost"
+            onClick={() => setLayout((l) => (l === 'A' ? 'B' : 'A'))}
+            title="Trocar layout"
+            style={
+              layout === 'B'
+                ? { background: 'transparent', color: '#0a0a0a', borderColor: 'rgba(0,0,0,0.3)' }
+                : undefined
+            }
+          >
+            LAYOUT {layout === 'A' ? 'B' : 'A'}
+          </button>
+          <button
+            className="btn"
+            onClick={() => setShowExitModal(true)}
+            style={
+              layout === 'B'
+                ? { background: '#0a0a0a', color: 'var(--accent)', borderColor: '#0a0a0a' }
+                : undefined
+            }
+          >
+            <Icon name="x" size={14} /> Sair
+          </button>
+          <button
+            className="btn primary"
+            onClick={() => { skipTimer(); setShowFinishModal(true) }}
+            style={
+              layout === 'B'
+                ? { background: 'rgba(0,0,0,0.85)', color: 'var(--text)', borderColor: 'rgba(0,0,0,0.85)' }
+                : undefined
+            }
+          >
+            Encerrar
+          </button>
         </div>
       </div>
 
-      {/* ── CONTEÚDO ── */}
-      <main className="relative z-10">
-        <div className="max-w-xl mx-auto" style={{ padding: '16px 16px 60px' }}>
+      {/* ─── CONTEÚDO ─────────────────────────────────────── */}
+      {layout === 'A' ? (
+        <LayoutA
+          workout={workout}
+          currentIdx={currentIdx}
+          setCurrentIdx={setCurrentIdx}
+          exercises={exercises}
+          currentExercise={currentExercise}
+          setsCompleted={setsCompleted}
+          lastSetData={lastSetData}
+          onSetComplete={handleSetComplete}
+          timerSeconds={timerSeconds}
+          isTimerRunning={isTimerRunning}
+          onAdjustTimer={adjustTimer}
+          onSkipTimer={skipTimer}
+          exercisesDone={exercisesDone}
+          totalSets={totalSets}
+        />
+      ) : (
+        <LayoutB
+          currentIdx={currentIdx}
+          exercises={exercises}
+          currentExercise={currentExercise}
+          setsCompleted={setsCompleted}
+          lastSetData={lastSetData}
+          onSetComplete={handleSetComplete}
+          timerSeconds={timerSeconds}
+          isTimerRunning={isTimerRunning}
+          onAdjustTimer={adjustTimer}
+          onSkipTimer={skipTimer}
+        />
+      )}
 
-          {/* Barra de progresso */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: exercisesDone > 0 ? 'var(--accent)' : 'var(--fg-3)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-              transition: 'color 0.3s',
-            }}>
-              {exercisesDone}/{exercises.length}
-            </div>
-            <div style={{
-              flex: 1,
-              height: 2,
-              background: 'var(--border)',
-              borderRadius: 2,
-              overflow: 'hidden',
-            }}>
-              <motion.div
-                animate={{ width: exercises.length > 0 ? `${(exercisesDone / exercises.length) * 100}%` : '0%' }}
-                transition={{ duration: 0.4 }}
-                style={{ height: '100%', background: 'var(--accent)', borderRadius: 2 }}
-              />
-            </div>
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: 'var(--fg-3)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-            }}>
-              {exercisesLeft > 0
-                ? `${exercisesLeft} restante${exercisesLeft !== 1 ? 's' : ''}`
-                : '✓ todos feitos'
-              }
-            </div>
-          </div>
-
-          {/* ── Exercício atual em destaque ── */}
-          {currentExercise && (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentExercise.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border-md)',
-                  borderLeft: '3px solid var(--accent)',
-                  borderRadius: 10,
-                  marginBottom: 20,
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Header do exercício */}
-                <div style={{
-                  padding: '14px 16px 12px',
-                  borderBottom: '1px solid var(--border)',
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    gap: 8,
-                    marginBottom: 4,
-                  }}>
-                    <span style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: 'var(--accent)',
-                      opacity: 0.7,
-                      letterSpacing: '0.05em',
-                      flexShrink: 0,
-                    }}>
-                      {String(currentIdx + 1).padStart(2, '0')}
-                    </span>
-                    <span style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 8,
-                      color: 'var(--fg-3)',
-                      letterSpacing: '0.15em',
-                      textTransform: 'uppercase',
-                    }}>
-                      {currentExercise.exercise?.muscle_group
-                        ? MUSCLE_GROUP_LABELS[currentExercise.exercise.muscle_group]
-                        : ''}
-                      {' · '}
-                      {currentExercise.sets} × {currentExercise.reps}
-                      {currentExercise.rest_seconds > 0 && ` · ${currentExercise.rest_seconds}s`}
-                    </span>
-                  </div>
-                  <div style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: 800,
-                    fontSize: 18,
-                    color: 'var(--fg)',
-                    letterSpacing: '-0.01em',
-                  }}>
-                    {currentExercise.exercise?.name ?? '—'}
-                  </div>
-                </div>
-
-                {/* Toggle instruções */}
-                {(currentExercise.notes || currentExercise.exercise?.video_url || currentExercise.exercise?.description) && (
-                  <div>
-                    <button
-                      onClick={() => setExpandedInstructions((v) => !v)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 16px',
-                        background: 'transparent',
-                        border: 'none',
-                        borderBottom: expandedInstructions ? '1px solid var(--border)' : 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 9,
-                        color: 'var(--fg-3)',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase',
-                      }}>
-                        ℹ instruções do professor
-                      </div>
-                      {expandedInstructions
-                        ? <ChevronUp size={12} color="var(--fg-3)" />
-                        : <ChevronDown size={12} color="var(--fg-3)" />
-                      }
-                    </button>
-
-                    <AnimatePresence>
-                      {expandedInstructions && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          style={{ overflow: 'hidden' }}
-                        >
-                          <div style={{
-                            padding: '10px 16px 12px',
-                            borderBottom: '1px solid var(--border)',
-                          }}>
-                            {/* Notas da ficha */}
-                            {currentExercise.notes && (
-                              <div style={{
-                                fontFamily: "'JetBrains Mono', monospace",
-                                fontSize: 11,
-                                color: 'var(--fg-2)',
-                                fontStyle: 'italic',
-                                lineHeight: 1.6,
-                                marginBottom: currentExercise.exercise?.video_url ? 8 : 0,
-                              }}>
-                                "{currentExercise.notes}"
-                              </div>
-                            )}
-                            {/* Descrição do exercício */}
-                            {!currentExercise.notes && currentExercise.exercise?.description && (
-                              <div style={{
-                                fontFamily: "'JetBrains Mono', monospace",
-                                fontSize: 11,
-                                color: 'var(--fg-2)',
-                                fontStyle: 'italic',
-                                lineHeight: 1.6,
-                                marginBottom: currentExercise.exercise?.video_url ? 8 : 0,
-                              }}>
-                                "{currentExercise.exercise.description}"
-                              </div>
-                            )}
-                            {/* Link de vídeo */}
-                            {currentExercise.exercise?.video_url && (
-                              <a
-                                href={currentExercise.exercise.video_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  fontFamily: "'JetBrains Mono', monospace",
-                                  fontSize: 9,
-                                  color: 'var(--accent)',
-                                  letterSpacing: '0.08em',
-                                  textTransform: 'uppercase',
-                                  textDecoration: 'none',
-                                }}
-                              >
-                                <ExternalLink size={10} /> Ver demonstração
-                              </a>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
-
-                {/* Lista de séries */}
-                <div style={{ padding: '8px 16px 12px' }}>
-                  {/* Indicador de histórico disponível */}
-                  {currentExercise.exercise?.id && lastSetData[currentExercise.exercise.id] && (
-                    <div style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 8,
-                      color: 'var(--accent)',
-                      opacity: 0.6,
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                      marginBottom: 6,
-                    }}>
-                      ↺ pré-preenchido com a última sessão
-                    </div>
-                  )}
-                  {Array.from({ length: currentExercise.sets }).map((_, i) => {
-                    const setNum = i + 1
-                    const doneCount = setsCompleted[currentExercise.id] ?? 0
-                    const isCompleted = setNum <= doneCount
-                    const exLibId = currentExercise.exercise?.id
-                    const lastSet = exLibId ? lastSetData[exLibId]?.[setNum] : undefined
-
-                    return (
-                      <ExerciseSetRow
-                        key={`${currentExercise.id}-${setNum}`}
-                        setNumber={setNum}
-                        suggestedReps={currentExercise.reps}
-                        suggestedLoad={currentExercise.suggested_load ?? null}
-                        lastReps={lastSet?.reps}
-                        lastLoad={lastSet?.loadKg}
-                        isCompleted={isCompleted}
-                        onComplete={(reps, loadKg) =>
-                          handleSetComplete(currentExercise, setNum, reps, loadKg)
-                        }
-                      />
-                    )
-                  })}
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          )}
-
-          {/* ── Outros exercícios ── */}
-          {exercises.length > 1 && (
-            <>
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: 'var(--fg-3)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}>
-                // outros exercícios
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {exercises.map((ex, idx) => {
-                  if (idx === currentIdx) return null
-                  const done = isExerciseDone(ex)
-                  const isActive = idx === currentIdx
-
-                  return (
-                    <motion.button
-                      key={ex.id}
-                      onClick={() => {
-                        if (!isActive) {
-                          setCurrentIdx(idx)
-                          setExpandedInstructions(false)
-                          skipTimer()
-                        }
-                      }}
-                      whileHover={{ opacity: 0.85 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 10,
-                        background: done ? 'var(--success-muted)' : 'var(--surface)',
-                        border: `1px solid ${done ? 'rgba(74,222,128,0.2)' : 'var(--border)'}`,
-                        borderRadius: 8,
-                        padding: '10px 14px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        width: '100%',
-                      }}
-                    >
-                      {/* Número de ordem */}
-                      <div style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: done ? 'var(--success)' : 'var(--fg-3)',
-                        opacity: done ? 0.7 : 0.4,
-                        letterSpacing: '0.05em',
-                        flexShrink: 0,
-                        minWidth: 20,
-                      }}>
-                        {String(idx + 1).padStart(2, '0')}
-                      </div>
-
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{
-                          fontFamily: "'Outfit', sans-serif",
-                          fontWeight: 800,
-                          fontSize: 12,
-                          color: done ? 'var(--success)' : 'var(--fg-2)',
-                          letterSpacing: '-0.01em',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          marginBottom: 1,
-                        }}>
-                          {ex.exercise?.name ?? '—'}
-                        </div>
-                        <div style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          fontSize: 9,
-                          color: 'var(--fg-3)',
-                          letterSpacing: '0.06em',
-                        }}>
-                          {ex.sets} × {ex.reps}
-                          {ex.exercise?.muscle_group
-                            ? ` · ${MUSCLE_GROUP_LABELS[ex.exercise.muscle_group]}`
-                            : ''
-                          }
-                        </div>
-                      </div>
-                      {done && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          flexShrink: 0,
-                          marginLeft: 8,
-                        }}>
-                          <Check size={12} color="var(--success)" strokeWidth={3} />
-                          <span style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                            fontSize: 8,
-                            color: 'var(--success)',
-                            letterSpacing: '0.1em',
-                            textTransform: 'uppercase',
-                          }}>
-                            feito
-                          </span>
-                        </div>
-                      )}
-                    </motion.button>
-                  )
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Botão ghost encerrar treino */}
-          <div style={{ marginTop: 28, textAlign: 'center' }}>
-            <button
-              onClick={() => { skipTimer(); setShowFinishModal(true) }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: 'var(--fg-3)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                padding: '8px 16px',
-              }}
-            >
-              // encerrar treino
-            </button>
-          </div>
-
-        </div>
-      </main>
-
-      {/* ── MODAL DE FINALIZAÇÃO ── */}
+      {/* ─── MODAL FINALIZAR ────────────────────────────── */}
       <WorkoutFinishModal
         isOpen={showFinishModal}
-        durationMinutes={(new Date().getTime() - startTimeRef.current.getTime()) / 1000 / 60}
-        totalExercises={exercises.length}
-        totalSets={totalSets}
-        onConfirm={handleFinish}
         onClose={() => setShowFinishModal(false)}
-        isLoading={isFinishing}
+        onConfirm={handleFinish}
+        isSubmitting={isFinishing}
+        sessionStats={{
+          exercisesDone,
+          totalExercises: exercises.length,
+          totalSets,
+          durationMinutes: Math.floor(elapsedSec / 60),
+        }}
       />
 
-      {/* ── MODAL DE SAÍDA ── */}
+      {/* ─── MODAL SAIR ─────────────────────────────────── */}
       <AnimatePresence>
         {showExitModal && (
-          <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !isExiting && setShowExitModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              zIndex: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 20,
+            }}
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(6, 7, 26,0.85)',
-                backdropFilter: 'blur(8px)',
-                zIndex: 50,
-              }}
-              onClick={() => !isExiting && setShowExitModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-              style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                zIndex: 51,
-                background: 'var(--surface)',
-                borderTop: '1px solid var(--border-md)',
-                borderRadius: '16px 16px 0 0',
-                padding: '24px 20px 40px',
-                maxWidth: 560,
-                margin: '0 auto',
-              }}
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="card"
+              style={{ maxWidth: 420, width: '100%' }}
             >
-              {/* Handle */}
-              <div style={{
-                width: 36,
-                height: 3,
-                borderRadius: 2,
-                background: 'var(--border-strong)',
-                margin: '0 auto 20px',
-              }} />
-
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: 'var(--fg-3)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}>
-                // sair do treino
+              <div className="eyebrow">SAIR DO TREINO?</div>
+              <h2 className="f-display" style={{ fontSize: 32, margin: '8px 0 16px', color: 'var(--text)' }}>
+                COMO QUER SAIR?
+              </h2>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 20 }}>
+                Você fez {totalSets} série{totalSets !== 1 ? 's' : ''} em {exercisesDone}/{exercises.length} exercícios.
               </div>
-              <div style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontWeight: 800,
-                fontSize: 18,
-                color: 'var(--fg)',
-                letterSpacing: '-0.01em',
-                marginBottom: 6,
-              }}>
-                Tem certeza?
-              </div>
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
-                color: 'var(--fg-3)',
-                lineHeight: 1.6,
-                marginBottom: 20,
-              }}>
-                {totalSets > 0
-                  ? `Você registrou ${totalSets} série${totalSets > 1 ? 's' : ''} até agora.`
-                  : 'Nenhuma série registrada ainda.'
-                }
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Salvar incompleto */}
+              <div className="col gap-3">
                 <button
+                  className="btn primary"
                   onClick={() => handleExit('save')}
                   disabled={isExiting}
-                  style={{
-                    background: 'var(--accent-muted)',
-                    border: '1px solid var(--accent-glow)',
-                    borderRadius: 8,
-                    padding: '13px',
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    color: 'var(--accent)',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    cursor: isExiting ? 'not-allowed' : 'pointer',
-                    opacity: isExiting && exitChoice !== 'save' ? 0.4 : 1,
-                  }}
+                  style={{ justifyContent: 'center' }}
                 >
-                  {isExiting && exitChoice === 'save' ? '// saindo...' : 'Salvar incompleto e sair'}
+                  {exitChoice === 'save' ? 'Salvando...' : 'Salvar progresso e sair'}
                 </button>
-
-                {/* Descartar */}
                 <button
+                  className="btn danger"
                   onClick={() => handleExit('discard')}
                   disabled={isExiting}
-                  style={{
-                    background: 'var(--danger-muted)',
-                    border: '1px solid rgba(248,113,113,0.2)',
-                    borderRadius: 8,
-                    padding: '13px',
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: 800,
-                    fontSize: 12,
-                    color: 'var(--danger)',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    cursor: isExiting ? 'not-allowed' : 'pointer',
-                    opacity: isExiting && exitChoice !== 'discard' ? 0.4 : 1,
-                  }}
+                  style={{ justifyContent: 'center' }}
                 >
-                  {isExiting && exitChoice === 'discard' ? '// descartando...' : 'Descartar treino'}
+                  {exitChoice === 'discard' ? 'Descartando...' : 'Descartar sessão'}
                 </button>
-
-                {/* Cancelar */}
                 <button
+                  className="btn ghost"
                   onClick={() => setShowExitModal(false)}
                   disabled={isExiting}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    padding: '11px',
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 10,
-                    color: 'var(--fg-3)',
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    cursor: isExiting ? 'not-allowed' : 'pointer',
-                  }}
+                  style={{ justifyContent: 'center' }}
                 >
                   Continuar treinando
                 </button>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
+    </>
+  )
+}
 
+// ═══════════════════════════════════════════════════════════════════
+// LAYOUT A — Lista lateral · Descanso compacto
+// ═══════════════════════════════════════════════════════════════════
+
+interface LayoutACommonProps {
+  exercises: WorkoutExercise[]
+  currentExercise: WorkoutExercise
+  setsCompleted: Record<string, number>
+  lastSetData: Record<string, Record<number, LastSetRecord>>
+  onSetComplete: (ex: WorkoutExercise, setNumber: number, reps: number, loadKg: number | null) => void
+  timerSeconds: number
+  isTimerRunning: boolean
+  onAdjustTimer: (delta: number) => void
+  onSkipTimer: () => void
+}
+
+interface LayoutAProps extends LayoutACommonProps {
+  workout: Workout | null
+  currentIdx: number
+  setCurrentIdx: (i: number) => void
+  exercisesDone: number
+  totalSets: number
+}
+
+function LayoutA(props: LayoutAProps) {
+  const {
+    workout, currentIdx, setCurrentIdx, exercises, currentExercise,
+    setsCompleted, lastSetData, onSetComplete,
+    timerSeconds, isTimerRunning, onAdjustTimer, onSkipTimer,
+    exercisesDone, totalSets,
+  } = props
+
+  const ex = currentExercise
+  const exDoneCount = setsCompleted[ex.id] ?? 0
+  const nextExercise = exercises[currentIdx + 1]
+
+  return (
+    <div className="content forja-treino-a" style={{ flexDirection: 'row', alignItems: 'stretch' }}>
+      {/* LEFT — Lista */}
+      <div className="col gap-3 forja-treino-list">
+        <div className="label-sm">
+          Exercícios · {currentIdx + 1}/{exercises.length}
+        </div>
+        <div className="bar">
+          <span style={{ width: `${(exercisesDone / exercises.length) * 100}%` }} />
+        </div>
+        <div className="col" style={{ marginTop: 8 }}>
+          {exercises.map((e, i) => {
+            const done = (setsCompleted[e.id] ?? 0) >= e.sets
+            const isCurrent = i === currentIdx
+            return (
+              <button
+                key={e.id}
+                onClick={() => setCurrentIdx(i)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 8px',
+                  borderBottom: '1px solid var(--hairline)',
+                  opacity: done && !isCurrent ? 0.45 : 1,
+                  background: 'transparent',
+                  border: 'none',
+                  width: '100%',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  color: 'inherit',
+                }}
+              >
+                <div
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    background: isCurrent ? 'var(--accent)' : done ? 'transparent' : 'var(--bg-2)',
+                    border: isCurrent ? 'none' : '1px solid var(--border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isCurrent ? 'var(--accent-fg)' : 'var(--text-dim)',
+                    fontFamily: 'var(--f-mono)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {done && !isCurrent ? <Icon name="check" size={14} stroke={2.5} /> : String(i + 1).padStart(2, '0')}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: isCurrent ? 700 : 500,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {e.exercise?.name ?? 'Exercício'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    {e.sets}×{e.reps} · {e.suggested_load ? `${e.suggested_load}kg` : 'peso corp.'}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* CENTER — Exercício atual */}
+      <div className="col flex-1 gap-5 forja-treino-center" style={{ minWidth: 0 }}>
+        {/* Header do exercício */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="forja-treino-exhead">
+            <div className="ph-img forja-treino-thumb" />
+            <div className="col flex-1" style={{ padding: '26px 28px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div>
+                  <div className="eyebrow" style={{ color: 'var(--accent)' }}>
+                    Exercício {String(currentIdx + 1).padStart(2, '0')}
+                  </div>
+                  <h1 className="f-display forja-treino-exname">
+                    {(ex.exercise?.name ?? 'Exercício').toUpperCase()}
+                  </h1>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {ex.exercise?.muscle_group && (
+                      <span className="chip muscle">{MUSCLE_GROUP_LABELS[ex.exercise.muscle_group]}</span>
+                    )}
+                    <span className="chip">{ex.sets} séries</span>
+                    <span className="chip">{ex.reps} reps</span>
+                    {ex.rest_seconds > 0 && <span className="chip">desc. {ex.rest_seconds}s</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Última vez / PR / Volume */}
+              <div className="forja-treino-stats">
+                <div>
+                  <div className="stat-label">Última vez</div>
+                  <div className="f-display" style={{ fontSize: 22, color: 'var(--text)' }}>
+                    {(() => {
+                      const last = lastSetData[ex.exercise?.id ?? '']?.[1]
+                      return last
+                        ? `${last.loadKg ?? 0}kg × ${last.reps}`
+                        : '—'
+                    })()}
+                  </div>
+                </div>
+                <div className="divider-v" style={{ height: 36, alignSelf: 'center' }} />
+                <div>
+                  <div className="stat-label">Progresso</div>
+                  <div className="f-display" style={{ fontSize: 22, color: 'var(--accent)' }}>
+                    {exDoneCount}/{ex.sets}
+                  </div>
+                </div>
+                <div className="divider-v" style={{ height: 36, alignSelf: 'center' }} />
+                <div>
+                  <div className="stat-label">Sessão</div>
+                  <div className="f-display" style={{ fontSize: 22, color: 'var(--text)' }}>
+                    {totalSets}<span className="stat-unit">séries</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Séries */}
+        <SetList
+          ex={ex}
+          exDoneCount={exDoneCount}
+          lastSetData={lastSetData}
+          onSetComplete={onSetComplete}
+        />
+      </div>
+
+      {/* RIGHT — Descanso + próximo */}
+      <div className="col gap-4 forja-treino-side">
+        <div className="card card-accent" style={{ padding: 24 }}>
+          <div className="eyebrow" style={{ color: 'rgba(0,0,0,0.55)' }}>Descanso</div>
+          <div
+            className="f-display"
+            style={{ fontSize: 96, lineHeight: 0.9, marginTop: 6, color: '#0a0a0a' }}
+          >
+            {formatMMSS(timerSeconds)}
+          </div>
+          <div className="bar" style={{ background: 'rgba(0,0,0,0.2)', margin: '12px 0', height: 4 }}>
+            <div
+              style={{
+                width: ex.rest_seconds > 0 ? `${(timerSeconds / ex.rest_seconds) * 100}%` : '0%',
+                height: '100%',
+                background: '#0a0a0a',
+                borderRadius: 99,
+                transition: 'width 1s linear',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <button
+              onClick={() => onAdjustTimer(15)}
+              className="btn"
+              style={{ background: '#0a0a0a', color: 'var(--accent)', borderColor: '#0a0a0a', flex: 1, justifyContent: 'center' }}
+            >
+              +15s
+            </button>
+            <button
+              onClick={onSkipTimer}
+              className="btn"
+              style={{ background: '#0a0a0a', color: 'var(--accent)', borderColor: '#0a0a0a', flex: 1, justifyContent: 'center' }}
+            >
+              {isTimerRunning ? 'Pular' : 'Pronto'}
+            </button>
+          </div>
+        </div>
+
+        {nextExercise && (
+          <div className="card">
+            <div className="label-sm">Próximo</div>
+            <div className="f-display" style={{ fontSize: 26, marginTop: 6, lineHeight: 1.05, color: 'var(--text)' }}>
+              {(nextExercise.exercise?.name ?? '').toUpperCase()}
+            </div>
+            <div style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 4 }}>
+              {nextExercise.sets} séries · {nextExercise.reps} reps
+              {nextExercise.suggested_load ? ` · ${nextExercise.suggested_load}kg` : ''}
+            </div>
+            <div className="ph-img" style={{ height: 100, marginTop: 14 }} />
+          </div>
+        )}
+
+        <div className="card card-flat">
+          <div className="label-sm">Sessão</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-dim)' }}>Séries</span>
+            <span className="f-mono">{totalSets}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-dim)' }}>Exercícios</span>
+            <span className="f-mono">
+              {exercisesDone} / {exercises.length}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-dim)' }}>Ficha</span>
+            <span className="f-mono" style={{ fontSize: 11 }}>{workout?.name ?? '—'}</span>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .forja-treino-a { gap: 24px; }
+        .forja-treino-list { width: 280px; flex-shrink: 0; }
+        .forja-treino-side { width: 300px; flex-shrink: 0; }
+        .forja-treino-exhead { display: flex; align-items: stretch; }
+        .forja-treino-thumb { width: 220px; height: 220px; border-radius: 0; flex-shrink: 0; }
+        .forja-treino-exname { font-size: 48px; margin: 4px 0 0; color: var(--text); line-height: 0.95; }
+        .forja-treino-stats { margin-top: auto; display: flex; gap: 28px; padding-top: 18px; border-top: 1px solid var(--hairline); flex-wrap: wrap; }
+
+        @media (max-width: 1100px) {
+          .forja-treino-a { flex-direction: column !important; }
+          .forja-treino-list, .forja-treino-side { width: 100% !important; }
+          .forja-treino-thumb { display: none; }
+          .forja-treino-exname { font-size: 36px; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LAYOUT B — Cronômetro hero · Topbar viva
+// ═══════════════════════════════════════════════════════════════════
+
+interface LayoutBProps extends LayoutACommonProps {
+  currentIdx: number
+}
+
+function LayoutB(props: LayoutBProps) {
+  const {
+    currentIdx, exercises, currentExercise,
+    setsCompleted, lastSetData, onSetComplete,
+    timerSeconds, isTimerRunning, onAdjustTimer, onSkipTimer,
+  } = props
+
+  const ex = currentExercise
+  const exDoneCount = setsCompleted[ex.id] ?? 0
+
+  return (
+    <div className="content" style={{ padding: 0, gap: 0 }}>
+      {/* HERO — exercício + cronômetro */}
+      <div className="forja-treino-b-hero">
+        <div className="forja-treino-b-info">
+          <div>
+            <div className="eyebrow">
+              Exercício {String(currentIdx + 1).padStart(2, '0')} de {String(exercises.length).padStart(2, '0')}
+              {ex.exercise?.muscle_group && ` · ${MUSCLE_GROUP_LABELS[ex.exercise.muscle_group]}`}
+            </div>
+            <h1 className="f-display forja-treino-b-exname">
+              {(ex.exercise?.name ?? 'Exercício').toUpperCase()}
+            </h1>
+          </div>
+          <div className="forja-treino-b-meta">
+            <div>
+              <div className="stat-label">Meta</div>
+              <div className="f-display" style={{ fontSize: 40, color: 'var(--text)' }}>
+                {ex.sets}
+                <span style={{ color: 'var(--text-dim)' }}>×</span>
+                {ex.reps}
+              </div>
+            </div>
+            <div className="divider-v" style={{ height: 56, alignSelf: 'center' }} />
+            <div>
+              <div className="stat-label">Carga base</div>
+              <div className="f-display" style={{ fontSize: 40, color: 'var(--text)' }}>
+                {ex.suggested_load ?? '—'}
+                <span className="stat-unit">kg</span>
+              </div>
+            </div>
+            <div className="divider-v" style={{ height: 56, alignSelf: 'center' }} />
+            <div>
+              <div className="stat-label">Feitas</div>
+              <div className="f-display" style={{ fontSize: 40, color: 'var(--accent)' }}>
+                {exDoneCount}
+                <span className="stat-unit">/ {ex.sets}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="forja-treino-b-timer">
+          <div
+            style={{
+              position: 'absolute',
+              inset: -1,
+              opacity: 0.04,
+              background: `radial-gradient(circle at center, var(--accent) 0%, transparent 70%)`,
+            }}
+          />
+          <div className="eyebrow" style={{ color: 'var(--accent)' }}>DESCANSO</div>
+          <div
+            className="f-display forja-treino-b-timer-num"
+            style={{ color: timerSeconds > 0 ? 'var(--accent)' : 'var(--text-faint)' }}
+          >
+            {formatMMSS(timerSeconds)}
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 18, position: 'relative' }}>
+            <button onClick={() => onAdjustTimer(-15)} className="btn">-15s</button>
+            <button onClick={() => onAdjustTimer(15)} className="btn">+15s</button>
+            <button onClick={onSkipTimer} className="btn primary">
+              <Icon name="play" size={12} /> Pular
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MIDDLE — séries + próximos */}
+      <div className="forja-treino-b-bottom">
+        <div className="forja-treino-b-sets">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div className="f-display" style={{ fontSize: 24, color: 'var(--text)' }}>SÉRIES</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <span className="chip">{ex.sets} planejadas</span>
+              {ex.rest_seconds > 0 && <span className="chip">Desc. {ex.rest_seconds}s</span>}
+            </div>
+          </div>
+          <SetList
+            ex={ex}
+            exDoneCount={exDoneCount}
+            lastSetData={lastSetData}
+            onSetComplete={onSetComplete}
+            embedded
+          />
+        </div>
+
+        <div className="forja-treino-b-next">
+          <div className="label-sm">Próximos exercícios</div>
+          <div className="col gap-3" style={{ marginTop: 14 }}>
+            {exercises.slice(currentIdx + 1, currentIdx + 5).map((e, i) => (
+              <div
+                key={e.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '8px 0',
+                  borderBottom: '1px solid var(--hairline)',
+                }}
+              >
+                <div className="ph-img" style={{ width: 48, height: 48, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    {e.exercise?.name ?? 'Exercício'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                    {e.sets}×{e.reps}
+                    {e.suggested_load ? ` · ${e.suggested_load}kg` : ''}
+                  </div>
+                </div>
+                <div className="pill-num">{String(currentIdx + 2 + i).padStart(2, '0')}</div>
+              </div>
+            ))}
+            {currentIdx >= exercises.length - 1 && (
+              <div style={{ color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
+                último exercício 🔥
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        .forja-treino-b-hero {
+          display: grid;
+          grid-template-columns: 1.4fr 1fr;
+          min-height: 360px;
+          border-bottom: 1px solid var(--hairline);
+        }
+        .forja-treino-b-info {
+          padding: 36px 40px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+        .forja-treino-b-exname {
+          font-size: 80px;
+          margin: 10px 0 0;
+          max-width: 14ch;
+          color: var(--text);
+          line-height: 0.92;
+        }
+        .forja-treino-b-meta {
+          display: flex;
+          gap: 36px;
+          margin-top: 24px;
+          flex-wrap: wrap;
+        }
+        .forja-treino-b-timer {
+          background: #050506;
+          border-left: 1px solid var(--hairline);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 32px;
+          position: relative;
+          overflow: hidden;
+        }
+        .forja-treino-b-timer-num {
+          font-size: 180px;
+          line-height: 0.85;
+          margin-top: 8px;
+          position: relative;
+        }
+        .forja-treino-b-bottom {
+          display: grid;
+          grid-template-columns: 1fr 320px;
+          min-height: 380px;
+        }
+        .forja-treino-b-sets {
+          padding: 28px 40px;
+          border-right: 1px solid var(--hairline);
+        }
+        .forja-treino-b-next {
+          padding: 24px 22px;
+          background: var(--bg-1);
+        }
+
+        @media (max-width: 1100px) {
+          .forja-treino-b-hero { grid-template-columns: 1fr; }
+          .forja-treino-b-timer-num { font-size: 120px; }
+          .forja-treino-b-bottom { grid-template-columns: 1fr; }
+          .forja-treino-b-sets { padding: 20px; border-right: none; border-bottom: 1px solid var(--hairline); }
+          .forja-treino-b-exname { font-size: 48px; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SET LIST — usada por A e B
+// ═══════════════════════════════════════════════════════════════════
+
+interface SetListProps {
+  ex: WorkoutExercise
+  exDoneCount: number
+  lastSetData: Record<string, Record<number, LastSetRecord>>
+  onSetComplete: (ex: WorkoutExercise, setNumber: number, reps: number, loadKg: number | null) => void
+  /** se true, remove o wrapper .card */
+  embedded?: boolean
+}
+
+function SetList({ ex, exDoneCount, lastSetData, onSetComplete, embedded = false }: SetListProps) {
+  const sets = Array.from({ length: ex.sets }, (_, i) => i + 1)
+  const exId = ex.exercise?.id ?? ''
+
+  const Header = (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '36px 1fr 1fr 32px',
+        gap: 12,
+        padding: '14px 16px',
+        borderBottom: '1px solid var(--hairline)',
+      }}
+    >
+      <div className="label-sm">#</div>
+      <div className="label-sm">Carga (kg)</div>
+      <div className="label-sm">Reps</div>
+      <div></div>
+    </div>
+  )
+
+  const Rows = (
+    <>
+      {sets.map((setNumber) => {
+        const isDone = setNumber <= exDoneCount
+        const isCurrent = setNumber === exDoneCount + 1
+        return (
+          <SetRow
+            key={setNumber}
+            setNumber={setNumber}
+            isDone={isDone}
+            isCurrent={isCurrent}
+            suggestedReps={ex.reps}
+            suggestedLoad={ex.suggested_load ?? null}
+            lastReps={lastSetData[exId]?.[setNumber]?.reps}
+            lastLoad={lastSetData[exId]?.[setNumber]?.loadKg}
+            onComplete={(reps, load) => onSetComplete(ex, setNumber, reps, load)}
+          />
+        )
+      })}
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div>
+        {Header}
+        {Rows}
+      </div>
+    )
+  }
+
+  return (
+    <div className="card" style={{ padding: 0 }}>
+      {Header}
+      {Rows}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SET ROW — linha de série editável
+// ═══════════════════════════════════════════════════════════════════
+
+interface SetRowProps {
+  setNumber: number
+  isDone: boolean
+  isCurrent: boolean
+  suggestedReps: string
+  suggestedLoad: number | null
+  lastReps?: number
+  lastLoad?: number | null
+  onComplete: (reps: number, loadKg: number | null) => void
+}
+
+function SetRow({
+  setNumber, isDone, isCurrent, suggestedReps, suggestedLoad, lastReps, lastLoad, onComplete,
+}: SetRowProps) {
+  // Prioridade: histórico > sugerido
+  const defaultReps = lastReps != null
+    ? String(lastReps)
+    : (suggestedReps.includes('-') ? suggestedReps.split('-')[1] : suggestedReps)
+
+  const defaultLoad = lastLoad != null
+    ? String(lastLoad)
+    : (suggestedLoad != null ? String(suggestedLoad) : '')
+
+  const [reps, setReps] = useState(defaultReps)
+  const [load, setLoad] = useState(defaultLoad)
+
+  function complete() {
+    const repsNum = parseInt(reps, 10)
+    const loadNum = load !== '' ? parseFloat(load) : null
+    if (!isNaN(repsNum) && repsNum > 0) {
+      onComplete(repsNum, loadNum)
+    }
+  }
+
+  return (
+    <div className={'set-row' + (isDone ? ' done' : '') + (isCurrent ? ' current' : '')}
+         style={{ gridTemplateColumns: '36px 1fr 1fr 32px' }}>
+      <div className="set-idx">{String(setNumber).padStart(2, '0')}</div>
+      <input
+        className="set-input"
+        type="number"
+        inputMode="decimal"
+        value={load}
+        onChange={(e) => setLoad(e.target.value)}
+        disabled={isDone}
+        placeholder="—"
+        step={0.5}
+        min={0}
+      />
+      <input
+        className="set-input"
+        type="number"
+        inputMode="numeric"
+        value={reps}
+        onChange={(e) => setReps(e.target.value)}
+        disabled={isDone}
+        placeholder="—"
+        min={1}
+      />
+      {isDone ? (
+        <div className="check checked">
+          <Icon name="check" size={14} stroke={3} />
+        </div>
+      ) : (
+        <button
+          onClick={complete}
+          className="check"
+          style={{ background: isCurrent ? 'var(--accent)' : 'transparent', border: 'none', cursor: 'pointer' }}
+          title="Marcar série como feita"
+        >
+          <Icon name="check" size={14} stroke={3} color={isCurrent ? 'var(--accent-fg)' : 'currentColor'} />
+        </button>
+      )}
     </div>
   )
 }
