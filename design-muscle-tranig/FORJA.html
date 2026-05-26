@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>FORJA · Sistema de Controle de Treino</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="styles.css"/>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    /* Canvas page background */
+    html, body { background: #1a1a1a; min-height: 100vh; }
+    /* Override design-canvas card chrome slightly for our brand */
+    .dc-card { background: #0a0a0a; border-color: rgba(255,255,255,0.06) !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="primitives.jsx"></script>
+  <script type="text/babel" src="shader-backdrop.jsx"></script>
+  <script type="text/babel" src="screens-treino.jsx"></script>
+  <script type="text/babel" src="screens-views.jsx"></script>
+  <script type="text/babel" src="screens-forms.jsx"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard, DCPostIt } = window;
+    const {
+      TreinoExecucaoA, TreinoExecucaoB, TreinoExecucaoMobile,
+      Dashboard, DashboardMobile, SemanaPlan, Biblioteca, Progresso,
+      CadastroTreino, Perfil, Login, CronometroMobile,
+    } = window;
+
+    // Desktop artboards 1440×900, Mobile 390×844
+    const DW = 1440, DH = 900;
+    const MW = 390, MH = 844;
+
+    function App() {
+      return (
+        <DesignCanvas title="FORJA — Sistema de Controle de Treino"
+                      subtitle="Troca de tema nativa: use o seletor de cor no rodapé da sidebar de qualquer tela — a paleta atualiza em tempo real e fica salva.">
+
+          <DCSection id="hero"
+                     title="Treino do Dia em Execução"
+                     subtitle="Tela-herói: foco em uma série por vez, descanso visível, navegação clara entre exercícios. Duas direções de layout + versão mobile.">
+            <DCArtboard id="treino-a" label="A · Lista lateral · Descanso compacto" width={DW} height={DH}>
+              <TreinoExecucaoA/>
+            </DCArtboard>
+            <DCArtboard id="treino-b" label="B · Cronômetro hero · Topbar viva" width={DW} height={DH}>
+              <TreinoExecucaoB/>
+            </DCArtboard>
+            <DCArtboard id="treino-mob" label="Mobile · Foco execução" width={MW} height={MH}>
+              <TreinoExecucaoMobile/>
+            </DCArtboard>
+          </DCSection>
+
+            <DCSection id="dashboard"
+                       title="Dashboard / Hoje"
+                       subtitle="Primeira tela ao abrir o app. Card-herói do treino de hoje + métricas-chave + visão da semana.">
+              <DCArtboard id="dash-desk" label="Desktop" width={DW} height={DH}>
+                <Dashboard/>
+              </DCArtboard>
+              <DCArtboard id="dash-mob" label="Mobile" width={MW} height={MH}>
+                <DashboardMobile/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="plano"
+                       title="Plano · Semana e Histórico"
+                       subtitle="Lista da semana com status por dia + tela completa de progresso com gráfico de carga, distribuição por grupo e medidas corporais.">
+              <DCArtboard id="semana" label="Semana · Plano" width={DW} height={DH}>
+                <SemanaPlan/>
+              </DCArtboard>
+              <DCArtboard id="progresso" label="Progresso · Gráficos" width={DW} height={DH}>
+                <Progresso/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="catalogo"
+                       title="Biblioteca · Cadastro · Perfil"
+                       subtitle="Catálogo de exercícios filtrável + ferramenta do Personal Trainer para montar treinos + perfil do aluno com dados, métricas vitalícias e preferências.">
+              <DCArtboard id="biblio" label="Biblioteca de Exercícios" width={DW} height={DH}>
+                <Biblioteca/>
+              </DCArtboard>
+              <DCArtboard id="cadastro" label="Cadastro de Treino · Personal" width={DW} height={DH}>
+                <CadastroTreino/>
+              </DCArtboard>
+              <DCArtboard id="perfil" label="Perfil" width={DW} height={DH}>
+                <Perfil/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="entrada"
+                       title="Login & Cronômetro"
+                       subtitle="Porta de entrada (login com arte editorial) + cronômetro em tela cheia para uso no celular durante o descanso.">
+              <DCArtboard id="login" label="Login · Cadastro" width={DW} height={DH}>
+                <Login/>
+              </DCArtboard>
+              <DCArtboard id="cron" label="Cronômetro · Mobile" width={MW} height={MH}>
+                <CronometroMobile/>
+              </DCArtboard>
+            </DCSection>
+
+            {/* Notas do designer */}
+            <DCSection id="notas" title="Sistema de design" subtitle="Tokens base. Tudo daqui se reflete em todas as telas.">
+              <DCArtboard id="tokens" label="Tokens" width={1440} height={520}>
+                <div style={{ width:'100%', height:'100%', background:'var(--bg-0)', padding: 40, color:'var(--text)', overflow:'auto', display:'flex', flexDirection:'column', gap: 28 }}>
+                  <div>
+                    <div className="eyebrow">CORES</div>
+                    <div style={{ display:'flex', gap:10, marginTop: 12 }}>
+                      {[
+                        ['#08090a','bg-0'],['#101113','bg-1'],['#181a1c','bg-2'],['#23262a','bg-3'],
+                        ['var(--accent)','accent'],['#ff3d55','danger'],['#6affb9','success'],['#ffb547','warn'],
+                      ].map(([c,l], i) => (
+                        <div key={i} style={{ flex:1 }}>
+                          <div style={{ height:80, background:c, borderRadius:8, border:'1px solid rgba(255,255,255,0.08)' }}/>
+                          <div style={{ fontSize:11, color:'var(--text-dim)', marginTop:6, letterSpacing:'0.1em' }}>{l.toUpperCase()}</div>
+                          <div className="f-mono" style={{ fontSize:11, color:'var(--text-faint)' }}>{c.replace('var(--accent)','#d4ff3a')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="eyebrow">TIPOGRAFIA</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:24, marginTop: 12 }}>
+                      <div>
+                        <div className="f-display" style={{ fontSize: 64, lineHeight: 0.9 }}>BEBAS NEUE</div>
+                        <div style={{ fontSize:11, color:'var(--text-dim)', marginTop:4 }}>Display · Títulos, números, eyebrows. Condensada, atlética, ecoa a referência vigor./GASLUR.</div>
+                      </div>
+                      <div>
+                        <div style={{ fontFamily:'Space Grotesk', fontSize: 40, fontWeight: 600 }}>Space Grotesk</div>
+                        <div style={{ fontSize:11, color:'var(--text-dim)', marginTop:4 }}>UI body · Forms, descrições, navegação. Moderno e técnico — ótimo com dados.</div>
+                      </div>
+                      <div>
+                        <div className="f-mono" style={{ fontSize: 36, fontWeight: 600 }}>JetBrains 28kg × 10</div>
+                        <div style={{ fontSize:11, color:'var(--text-dim)', marginTop:4 }}>Monospace · Apenas para números tabulares em séries/cargas para alinhamento.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap: 24, alignItems:'flex-end' }}>
+                    <div>
+                      <div className="eyebrow">BOTÕES</div>
+                      <div style={{ display:'flex', gap:10, marginTop:12 }}>
+                        <button className="btn primary">Primário</button>
+                        <button className="btn">Secundário</button>
+                        <button className="btn ghost">Ghost</button>
+                        <button className="btn danger">Perigo</button>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="eyebrow">CHIPS</div>
+                      <div style={{ display:'flex', gap:6, marginTop:12 }}>
+                        <span className="chip">Padrão</span>
+                        <span className="chip solid">Ativo</span>
+                        <span className="chip muscle">Grupo</span>
+                        <span className="chip success">+PR</span>
+                        <span className="chip danger">Falha</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </DCArtboard>
+            </DCSection>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
