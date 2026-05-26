@@ -149,8 +149,8 @@ export function ExerciseSelector({
           zIndex: 50,
           width: 'min(480px, calc(100vw - 32px))',
           maxHeight: 'calc(100vh - 80px)',
-          background: 'var(--surface)',
-          border: '1px solid var(--border-md)',
+          background: 'var(--bg-1)',
+          border: '1px solid var(--border)',
           borderTop: '2px solid var(--accent)',
           borderRadius: 4,
           display: 'flex', flexDirection: 'column',
@@ -169,14 +169,14 @@ export function ExerciseSelector({
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 14, color: 'var(--fg)' }}>
+                <div style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
                   Adicionar Exercício
                 </div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', marginTop: 2, fontStyle: 'italic' }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic' }}>
                   // {exercises.length} no catálogo · admin pode criar novos
                 </div>
               </div>
-              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 4, opacity: 0.5 }}>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', padding: 4, opacity: 0.5 }}>
                 <X size={16} />
               </button>
             </div>
@@ -186,10 +186,10 @@ export function ExerciseSelector({
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 background: 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--border-md)',
+                border: '1px solid var(--border)',
                 borderRadius: 4, padding: '7px 10px', marginBottom: 10,
               }}>
-                <Search size={13} style={{ color: 'var(--fg-3)', opacity: 0.5, flexShrink: 0 }} />
+                <Search size={13} style={{ color: 'var(--text-faint)', opacity: 0.5, flexShrink: 0 }} />
                 <input
                   ref={searchRef}
                   type="text"
@@ -198,11 +198,11 @@ export function ExerciseSelector({
                   placeholder="Buscar exercício..."
                   style={{
                     background: 'transparent', border: 'none', outline: 'none',
-                    color: 'var(--fg)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, flex: 1,
+                    color: 'var(--text)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, flex: 1,
                   }}
                 />
                 {search && (
-                  <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-3)', opacity: 0.5 }}>
+                  <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', opacity: 0.5 }}>
                     <X size={12} />
                   </button>
                 )}
@@ -214,9 +214,9 @@ export function ExerciseSelector({
                   onClick={() => setMuscleFilter(null)}
                   style={{
                     background: muscleFilter === null ? 'var(--accent)' : 'transparent',
-                    border: `1px solid ${muscleFilter === null ? 'var(--accent)' : 'var(--border-md)'}`,
+                    border: `1px solid ${muscleFilter === null ? 'var(--accent)' : 'var(--border)'}`,
                     borderRadius: 2, padding: '3px 8px',
-                    color: muscleFilter === null ? 'var(--bg)' : 'var(--fg-3)',
+                    color: muscleFilter === null ? 'var(--bg-0)' : 'var(--text-faint)',
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.1em',
                     textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
@@ -229,9 +229,9 @@ export function ExerciseSelector({
                     onClick={() => setMuscleFilter(muscleFilter === key ? null : key)}
                     style={{
                       background: muscleFilter === key ? 'var(--accent)' : 'transparent',
-                      border: `1px solid ${muscleFilter === key ? 'var(--accent)' : 'var(--border-md)'}`,
+                      border: `1px solid ${muscleFilter === key ? 'var(--accent)' : 'var(--border)'}`,
                       borderRadius: 2, padding: '3px 8px',
-                      color: muscleFilter === key ? 'var(--bg)' : 'var(--fg-3)',
+                      color: muscleFilter === key ? 'var(--bg-0)' : 'var(--text-faint)',
                       fontFamily: "'JetBrains Mono', monospace", fontSize: 9, letterSpacing: '0.1em',
                       textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap',
                     }}
@@ -245,7 +245,7 @@ export function ExerciseSelector({
             {/* Lista */}
             <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
               {loading && (
-                <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+                <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
                   // carregando...
                 </div>
               )}
@@ -253,7 +253,7 @@ export function ExerciseSelector({
               {/* Nenhum resultado — oferece criar */}
               {noResults && (
                 <div style={{ padding: '16px 8px' }}>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--fg-3)', fontStyle: 'italic', marginBottom: 12, textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: 'var(--text-faint)', fontStyle: 'italic', marginBottom: 12, textAlign: 'center' }}>
                     // "{search}" não encontrado na biblioteca
                   </div>
                   <button
@@ -265,7 +265,7 @@ export function ExerciseSelector({
                       border: '1px solid rgba(108, 142, 247,0.35)',
                       borderRadius: 4, padding: '11px',
                       color: 'var(--accent)',
-                      fontFamily: "'Outfit', sans-serif", fontWeight: 800,
+                      fontFamily: "var(--f-display)", fontWeight: 800,
                       fontSize: 11, letterSpacing: '0.08em', cursor: 'pointer',
                       transition: 'background 0.15s',
                     }}
@@ -292,10 +292,10 @@ export function ExerciseSelector({
                   onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'rgba(108, 142, 247,0.06)')}
                   onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = 'transparent')}
                 >
-                  <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--fg)' }}>
+                  <span style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>
                     {exercise.name}
                   </span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     {MUSCLE_GROUP_LABELS[exercise.muscle_group as MuscleGroup] ?? exercise.muscle_group}
                   </span>
                 </button>
@@ -310,9 +310,9 @@ export function ExerciseSelector({
                       width: '100%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       background: 'transparent',
-                      border: '1px dashed var(--border-md)',
+                      border: '1px dashed var(--border)',
                       borderRadius: 4, padding: '8px',
-                      color: 'var(--fg-3)',
+                      color: 'var(--text-faint)',
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
                       cursor: 'pointer', transition: 'all 0.15s',
@@ -324,8 +324,8 @@ export function ExerciseSelector({
                     }}
                     onMouseLeave={(e) => {
                       const el = e.currentTarget as HTMLButtonElement
-                      el.style.borderColor = 'var(--border-md)'
-                      el.style.color = 'var(--fg-3)'
+                      el.style.borderColor = 'var(--border)'
+                      el.style.color = 'var(--text-faint)'
                     }}
                   >
                     <Plus size={11} />
@@ -350,19 +350,19 @@ export function ExerciseSelector({
             }}>
               <button
                 onClick={() => setView('search')}
-                style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 2, opacity: 0.6, display: 'flex', alignItems: 'center' }}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', padding: 2, opacity: 0.6, display: 'flex', alignItems: 'center' }}
               >
                 <ChevronLeft size={16} />
               </button>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 14, color: 'var(--fg)' }}>
+                <div style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
                   Novo Exercício
                 </div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', marginTop: 2, fontStyle: 'italic' }}>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic' }}>
                   // será adicionado à biblioteca permanentemente
                 </div>
               </div>
-              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 4, opacity: 0.5 }}>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', padding: 4, opacity: 0.5 }}>
                 <X size={16} />
               </button>
             </div>
@@ -372,7 +372,7 @@ export function ExerciseSelector({
 
               {/* Nome */}
               <div>
-                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
                   Nome *
                 </label>
                 <input
@@ -383,14 +383,14 @@ export function ExerciseSelector({
                   style={{
                     width: '100%',
                     background: 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${createFormErrors.name ? 'var(--danger)' : 'var(--border-md)'}`,
+                    border: `1px solid ${createFormErrors.name ? 'var(--danger)' : 'var(--border)'}`,
                     borderRadius: 4, padding: '9px 12px',
-                    color: 'var(--fg)',
-                    fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 14,
+                    color: 'var(--text)',
+                    fontFamily: "var(--f-display)", fontWeight: 700, fontSize: 14,
                     outline: 'none',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
-                  onBlur={(e) => (e.target.style.borderColor = createFormErrors.name ? 'var(--danger)' : 'var(--border-md)')}
+                  onBlur={(e) => (e.target.style.borderColor = createFormErrors.name ? 'var(--danger)' : 'var(--border)')}
                 />
                 {createFormErrors.name && (
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--danger)', marginTop: 4 }}>
@@ -401,7 +401,7 @@ export function ExerciseSelector({
 
               {/* Grupo muscular */}
               <div>
-                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
                   Grupo Muscular *
                 </label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -412,9 +412,9 @@ export function ExerciseSelector({
                       onClick={() => { setNewMuscle(key); setCreateFormErrors((p) => ({ ...p, muscle: undefined })) }}
                       style={{
                         background: newMuscle === key ? 'var(--accent)' : 'transparent',
-                        border: `1px solid ${createFormErrors.muscle && !newMuscle ? 'var(--danger)' : newMuscle === key ? 'var(--accent)' : 'var(--border-md)'}`,
+                        border: `1px solid ${createFormErrors.muscle && !newMuscle ? 'var(--danger)' : newMuscle === key ? 'var(--accent)' : 'var(--border)'}`,
                         borderRadius: 3, padding: '5px 10px',
-                        color: newMuscle === key ? 'var(--bg)' : 'var(--fg-3)',
+                        color: newMuscle === key ? 'var(--bg-0)' : 'var(--text-faint)',
                         fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
                         letterSpacing: '0.08em', textTransform: 'uppercase',
                         cursor: 'pointer', transition: 'all 0.15s',
@@ -433,7 +433,7 @@ export function ExerciseSelector({
 
               {/* Descrição (opcional) */}
               <div>
-                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
                   Descrição <span style={{ opacity: 0.4 }}>(opcional)</span>
                 </label>
                 <textarea
@@ -444,14 +444,14 @@ export function ExerciseSelector({
                   style={{
                     width: '100%',
                     background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid var(--border-md)',
+                    border: '1px solid var(--border)',
                     borderRadius: 4, padding: '9px 12px',
-                    color: 'var(--fg)',
+                    color: 'var(--text)',
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
                     outline: 'none', resize: 'vertical',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
-                  onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
                 />
               </div>
 
@@ -473,9 +473,9 @@ export function ExerciseSelector({
               <button
                 onClick={() => setView('search')}
                 style={{
-                  background: 'transparent', border: '1px solid var(--border-md)',
+                  background: 'transparent', border: '1px solid var(--border)',
                   borderRadius: 4, padding: '8px 16px',
-                  color: 'var(--fg-2)',
+                  color: 'var(--text-dim)',
                   fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
                   letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
                 }}
@@ -489,8 +489,8 @@ export function ExerciseSelector({
                   display: 'flex', alignItems: 'center', gap: 6,
                   background: creating ? 'rgba(108, 142, 247,0.5)' : 'var(--accent)',
                   border: 'none', borderRadius: 4, padding: '8px 18px',
-                  color: 'var(--bg)',
-                  fontFamily: "'Outfit', sans-serif", fontWeight: 800,
+                  color: 'var(--bg-0)',
+                  fontFamily: "var(--f-display)", fontWeight: 800,
                   fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase',
                   cursor: creating ? 'not-allowed' : 'pointer',
                 }}

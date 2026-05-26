@@ -68,8 +68,8 @@ export function WorkoutFinishModal({
               left: 0,
               right: 0,
               zIndex: 51,
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--border-md)',
+              background: 'var(--bg-1)',
+              borderTop: '1px solid var(--border)',
               borderRadius: '16px 16px 0 0',
               padding: '24px 20px 40px',
               maxWidth: 560,
@@ -97,10 +97,10 @@ export function WorkoutFinishModal({
               // treino concluído
             </div>
             <div style={{
-              fontFamily: "'Outfit', sans-serif",
+              fontFamily: "var(--f-display)",
               fontWeight: 800,
               fontSize: 24,
-              color: 'var(--fg)',
+              color: 'var(--text)',
               letterSpacing: '-0.02em',
               marginBottom: 20,
             }}>
@@ -120,17 +120,17 @@ export function WorkoutFinishModal({
                 { icon: <Hash size={14} />, value: String(totalSets), label: 'séries' },
               ].map(({ icon, value, label }) => (
                 <div key={label} style={{
-                  background: 'var(--surface-2)',
+                  background: 'var(--bg-2)',
                   border: '1px solid var(--border)',
                   borderRadius: 8,
                   padding: '12px 8px',
                   textAlign: 'center',
                 }}>
-                  <div style={{ color: 'var(--fg-3)', marginBottom: 4, display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ color: 'var(--text-faint)', marginBottom: 4, display: 'flex', justifyContent: 'center' }}>
                     {icon}
                   </div>
                   <div style={{
-                    fontFamily: "'Outfit', sans-serif",
+                    fontFamily: "var(--f-display)",
                     fontWeight: 800,
                     fontSize: 20,
                     color: 'var(--accent)',
@@ -142,7 +142,7 @@ export function WorkoutFinishModal({
                   <div style={{
                     fontFamily: "'JetBrains Mono', monospace",
                     fontSize: 8,
-                    color: 'var(--fg-3)',
+                    color: 'var(--text-faint)',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                   }}>
@@ -156,7 +156,7 @@ export function WorkoutFinishModal({
             <div style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 9,
-              color: 'var(--fg-3)',
+              color: 'var(--text-faint)',
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
               marginBottom: 8,
@@ -174,8 +174,8 @@ export function WorkoutFinishModal({
                   key={key}
                   onClick={() => setDifficulty(key)}
                   style={{
-                    background: difficulty === key ? 'var(--accent-muted)' : 'var(--surface-2)',
-                    border: `1px solid ${difficulty === key ? 'var(--accent-glow)' : 'var(--border)'}`,
+                    background: difficulty === key ? 'rgba(212,255,58,0.13)' : 'var(--bg-2)',
+                    border: `1px solid ${difficulty === key ? 'var(--accent)' : 'var(--border)'}`,
                     borderRadius: 8,
                     padding: '10px 4px',
                     cursor: 'pointer',
@@ -188,7 +188,7 @@ export function WorkoutFinishModal({
                   <div style={{
                     fontFamily: "'JetBrains Mono', monospace",
                     fontSize: 8,
-                    color: difficulty === key ? 'var(--accent)' : 'var(--fg-3)',
+                    color: difficulty === key ? 'var(--accent)' : 'var(--text-faint)',
                     letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                   }}>
@@ -202,7 +202,7 @@ export function WorkoutFinishModal({
             <div style={{
               fontFamily: "'JetBrains Mono', monospace",
               fontSize: 9,
-              color: 'var(--fg-3)',
+              color: 'var(--text-faint)',
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
               marginBottom: 8,
@@ -216,20 +216,20 @@ export function WorkoutFinishModal({
               rows={2}
               style={{
                 width: '100%',
-                background: 'var(--surface-2)',
-                border: '1px solid var(--border-md)',
+                background: 'var(--bg-2)',
+                border: '1px solid var(--border)',
                 borderRadius: 6,
                 padding: '10px 12px',
                 fontFamily: "'JetBrains Mono', monospace",
                 fontSize: 11,
-                color: 'var(--fg)',
+                color: 'var(--text)',
                 resize: 'none',
                 outline: 'none',
                 marginBottom: 16,
                 lineHeight: 1.6,
               }}
               onFocus={(e) => (e.target.style.borderColor = 'var(--border-strong)')}
-              onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
             />
 
             {/* Botão confirmar */}
@@ -242,10 +242,10 @@ export function WorkoutFinishModal({
                 border: 'none',
                 borderRadius: 8,
                 padding: '14px',
-                fontFamily: "'Outfit', sans-serif",
+                fontFamily: "var(--f-display)",
                 fontWeight: 800,
                 fontSize: 13,
-                color: difficulty ? '#05050a' : 'var(--fg-3)',
+                color: difficulty ? '#05050a' : 'var(--text-faint)',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 cursor: difficulty && !isLoading ? 'pointer' : 'not-allowed',

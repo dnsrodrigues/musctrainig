@@ -52,8 +52,8 @@ export function Avatar({ name, src, size = 'md', className = '', style }: Avatar
       style={{
         ...baseStyle,
         background: 'var(--accent)',
-        color: 'var(--bg)',
-        fontFamily: "'Outfit', sans-serif",
+        color: 'var(--bg-0)',
+        fontFamily: "var(--f-display)",
         fontWeight: 800,
         fontSize: font,
         letterSpacing: '0.08em',

@@ -58,8 +58,8 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--border-md)',
+              background: 'var(--bg-1)',
+              borderTop: '1px solid var(--border)',
               borderRadius: '16px 16px 0 0',
               padding: '24px 20px 40px',
               maxWidth: 560,
@@ -81,8 +81,8 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
               // registrar peso
             </div>
             <div style={{
-              fontFamily: "'Outfit', sans-serif", fontWeight: 800,
-              fontSize: 22, color: 'var(--fg)', letterSpacing: '-0.02em', marginBottom: 24,
+              fontFamily: "var(--f-display)", fontWeight: 800,
+              fontSize: 22, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 24,
             }}>
               Quanto você pesa hoje?
             </div>
@@ -91,7 +91,7 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
             <div style={{ marginBottom: 16 }}>
               <div style={{
                 fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
-                color: 'var(--fg-3)', letterSpacing: '0.15em',
+                color: 'var(--text-faint)', letterSpacing: '0.15em',
                 textTransform: 'uppercase', marginBottom: 6,
               }}>
                 // peso (kg)
@@ -109,23 +109,23 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
                   autoFocus
                   style={{
                     flex: 1,
-                    background: 'var(--surface-2)',
-                    border: '1px solid var(--border-md)',
+                    background: 'var(--bg-2)',
+                    border: '1px solid var(--border)',
                     borderRadius: 6,
                     padding: '12px 14px',
-                    fontFamily: "'Outfit', sans-serif",
+                    fontFamily: "var(--f-display)",
                     fontWeight: 800,
                     fontSize: 22,
-                    color: 'var(--fg)',
+                    color: 'var(--text)',
                     outline: 'none',
                     textAlign: 'center',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
-                  onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
                 />
                 <div style={{
-                  fontFamily: "'Outfit', sans-serif", fontWeight: 800,
-                  fontSize: 18, color: 'var(--fg-3)',
+                  fontFamily: "var(--f-display)", fontWeight: 800,
+                  fontSize: 18, color: 'var(--text-faint)',
                 }}>
                   kg
                 </div>
@@ -136,7 +136,7 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
             <div style={{ marginBottom: 24 }}>
               <div style={{
                 fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
-                color: 'var(--fg-3)', letterSpacing: '0.15em',
+                color: 'var(--text-faint)', letterSpacing: '0.15em',
                 textTransform: 'uppercase', marginBottom: 6,
               }}>
                 // data da medição
@@ -148,18 +148,18 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
                 onChange={(e) => setDate(e.target.value)}
                 style={{
                   width: '100%',
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--border-md)',
+                  background: 'var(--bg-2)',
+                  border: '1px solid var(--border)',
                   borderRadius: 6,
                   padding: '10px 14px',
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 12,
-                  color: 'var(--fg)',
+                  color: 'var(--text)',
                   outline: 'none',
                   colorScheme: 'dark',
                 }}
                 onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
-                onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
               />
             </div>
 
@@ -179,9 +179,9 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
                 width: '100%',
                 background: canSave ? 'var(--accent)' : 'var(--surface-3)',
                 border: 'none', borderRadius: 8, padding: '14px',
-                fontFamily: "'Outfit', sans-serif", fontWeight: 800,
+                fontFamily: "var(--f-display)", fontWeight: 800,
                 fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase',
-                color: canSave ? '#05050a' : 'var(--fg-3)',
+                color: canSave ? '#05050a' : 'var(--text-faint)',
                 cursor: canSave && !saving ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s',
                 opacity: saving ? 0.7 : 1,

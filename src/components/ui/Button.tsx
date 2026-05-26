@@ -32,30 +32,30 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const variantStyles: Record<string, React.CSSProperties> = {
       primary: {
         background: 'var(--accent)',
-        color: 'var(--bg)',
-        fontFamily: "'Outfit', sans-serif",
+        color: 'var(--bg-0)',
+        fontFamily: "var(--f-display)",
         fontWeight: 700,
         borderRadius: '4px',
       },
       secondary: {
         background: 'transparent',
-        color: 'var(--fg)',
-        border: '1px solid var(--border-md)',
-        fontFamily: "'Outfit', sans-serif",
+        color: 'var(--text)',
+        border: '1px solid var(--border)',
+        fontFamily: "var(--f-display)",
         fontWeight: 700,
         borderRadius: '4px',
       },
       ghost: {
         background: 'transparent',
-        color: 'var(--fg-2)',
-        fontFamily: "'Outfit', sans-serif",
+        color: 'var(--text-dim)',
+        fontFamily: "var(--f-display)",
         fontWeight: 700,
         borderRadius: '4px',
       },
       danger: {
         background: 'var(--danger)',
-        color: 'var(--bg)',
-        fontFamily: "'Outfit', sans-serif",
+        color: 'var(--bg-0)',
+        fontFamily: "var(--f-display)",
         fontWeight: 700,
         borderRadius: '4px',
       },
@@ -64,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const variantClasses = {
       primary:   'hover:brightness-110 hover:-translate-y-px active:scale-[0.97]',
       secondary: 'hover:border-[rgba(240,237,230,0.22)] hover:bg-[rgba(240,237,230,0.04)]',
-      ghost:     'hover:text-[var(--fg)]',
+      ghost:     'hover:text-[var(--text)]',
       danger:    'hover:-translate-y-px',
     }
 
@@ -81,7 +81,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             className="w-[13px] h-[13px] border-2 rounded-full animate-spin"
             style={{
               borderColor: 'rgba(6, 7, 26,0.3)',
-              borderTopColor: 'var(--bg)',
+              borderTopColor: 'var(--bg-0)',
             }}
           />
         )}

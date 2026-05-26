@@ -88,8 +88,8 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--border-md)',
+              background: 'var(--bg-1)',
+              borderTop: '1px solid var(--border)',
               borderRadius: '16px 16px 0 0',
               padding: '24px 20px 40px',
               maxWidth: 560,
@@ -113,14 +113,14 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
               // nova medição
             </div>
             <div style={{
-              fontFamily: "'Outfit', sans-serif", fontWeight: 800,
-              fontSize: 20, color: 'var(--fg)', letterSpacing: '-0.02em', marginBottom: 6,
+              fontFamily: "var(--f-display)", fontWeight: 800,
+              fontSize: 20, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 6,
             }}>
               Medidas Corporais
             </div>
             <div style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: 10,
-              color: 'var(--fg-3)', fontStyle: 'italic', marginBottom: 20,
+              color: 'var(--text-faint)', fontStyle: 'italic', marginBottom: 20,
             }}>
               // preencha apenas os campos que mediu
             </div>
@@ -136,7 +136,7 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
                 <div key={f.key}>
                   <div style={{
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 8,
-                    color: 'var(--fg-3)', letterSpacing: '0.12em',
+                    color: 'var(--text-faint)', letterSpacing: '0.12em',
                     textTransform: 'uppercase', marginBottom: 4,
                   }}>
                     {f.label} (cm)
@@ -152,18 +152,18 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
                     placeholder={f.placeholder}
                     style={{
                       width: '100%',
-                      background: 'var(--surface-2)',
-                      border: '1px solid var(--border-md)',
+                      background: 'var(--bg-2)',
+                      border: '1px solid var(--border)',
                       borderRadius: 6,
                       padding: '10px 12px',
                       fontFamily: "'JetBrains Mono', monospace",
                       fontSize: 13,
-                      color: 'var(--fg)',
+                      color: 'var(--text)',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
                     onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
-                    onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+                    onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
                   />
                 </div>
               ))}
@@ -173,7 +173,7 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
             <div style={{ marginBottom: 24 }}>
               <div style={{
                 fontFamily: "'JetBrains Mono', monospace", fontSize: 9,
-                color: 'var(--fg-3)', letterSpacing: '0.15em',
+                color: 'var(--text-faint)', letterSpacing: '0.15em',
                 textTransform: 'uppercase', marginBottom: 6,
               }}>
                 // data da medição
@@ -185,18 +185,18 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
                 onChange={(e) => setDate(e.target.value)}
                 style={{
                   width: '100%',
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--border-md)',
+                  background: 'var(--bg-2)',
+                  border: '1px solid var(--border)',
                   borderRadius: 6,
                   padding: '10px 14px',
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: 12,
-                  color: 'var(--fg)',
+                  color: 'var(--text)',
                   outline: 'none',
                   colorScheme: 'dark',
                 }}
                 onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
-                onBlur={(e) => (e.target.style.borderColor = 'var(--border-md)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
               />
             </div>
 
@@ -216,9 +216,9 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
                 width: '100%',
                 background: canSave ? 'var(--accent)' : 'var(--surface-3)',
                 border: 'none', borderRadius: 8, padding: '14px',
-                fontFamily: "'Outfit', sans-serif", fontWeight: 800,
+                fontFamily: "var(--f-display)", fontWeight: 800,
                 fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase',
-                color: canSave ? '#05050a' : 'var(--fg-3)',
+                color: canSave ? '#05050a' : 'var(--text-faint)',
                 cursor: canSave && !saving ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s',
                 opacity: saving ? 0.7 : 1,

@@ -99,8 +99,8 @@ export function AssignWorkoutModal({
         zIndex: 50,
         width: 'min(440px, calc(100vw - 32px))',
         maxHeight: 'calc(100vh - 80px)',
-        background: 'var(--surface)',
-        border: '1px solid var(--border-md)',
+        background: 'var(--bg-1)',
+        border: '1px solid var(--border)',
         borderTop: '2px solid var(--accent)',
         borderRadius: 4,
         display: 'flex', flexDirection: 'column',
@@ -114,16 +114,16 @@ export function AssignWorkoutModal({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 14, color: 'var(--fg)' }}>
+            <div style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
               Atribuir Ficha
             </div>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', marginTop: 2, fontStyle: 'italic' }}>
+            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic' }}>
               // {workout.name}
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--fg-3)', cursor: 'pointer', padding: 4, opacity: 0.5 }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', padding: 4, opacity: 0.5 }}
           >
             <X size={16} />
           </button>
@@ -134,10 +134,10 @@ export function AssignWorkoutModal({
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--border-md)',
+            border: '1px solid var(--border)',
             borderRadius: 4, padding: '7px 10px',
           }}>
-            <Search size={13} style={{ color: 'var(--fg-3)', opacity: 0.5, flexShrink: 0 }} />
+            <Search size={13} style={{ color: 'var(--text-faint)', opacity: 0.5, flexShrink: 0 }} />
             <input
               type="text"
               value={search}
@@ -145,7 +145,7 @@ export function AssignWorkoutModal({
               placeholder="Buscar aluno..."
               style={{
                 background: 'transparent', border: 'none', outline: 'none',
-                color: 'var(--fg)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, flex: 1,
+                color: 'var(--text)', fontFamily: "'JetBrains Mono', monospace", fontSize: 12, flex: 1,
               }}
             />
           </div>
@@ -168,13 +168,13 @@ export function AssignWorkoutModal({
         {/* Lista */}
         <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
           {loading && (
-            <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+            <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
               // carregando alunos...
             </div>
           )}
 
           {!loading && filtered.length === 0 && (
-            <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+            <div style={{ padding: '24px', textAlign: 'center', fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
               // nenhum aluno encontrado
             </div>
           )}
@@ -198,11 +198,11 @@ export function AssignWorkoutModal({
               >
                 <Avatar name={student.full_name} size="xs" />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 700, fontSize: 13, color: 'var(--fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {student.full_name}
                   </div>
                   {student.goal && (
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--fg-3)', opacity: 0.5 }}>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', opacity: 0.5 }}>
                       {student.goal}
                     </div>
                   )}
@@ -216,7 +216,7 @@ export function AssignWorkoutModal({
                     border: isAssigned ? '1px solid rgba(108, 142, 247,0.3)' : 'none',
                     borderRadius: 3,
                     padding: '5px 10px',
-                    color: isAssigned ? 'var(--accent)' : 'var(--bg)',
+                    color: isAssigned ? 'var(--accent)' : 'var(--bg-0)',
                     fontFamily: "'JetBrains Mono', monospace",
                     fontSize: 9, letterSpacing: '0.1em',
                     textTransform: 'uppercase',
@@ -243,11 +243,11 @@ export function AssignWorkoutModal({
             onClick={() => { if (hasAssignedAny) onAssigned(); else onClose() }}
             style={{
               background: hasAssignedAny ? 'var(--accent)' : 'transparent',
-              border: hasAssignedAny ? 'none' : '1px solid var(--border-md)',
+              border: hasAssignedAny ? 'none' : '1px solid var(--border)',
               borderRadius: 4,
               padding: '7px 16px',
-              color: hasAssignedAny ? 'var(--bg)' : 'var(--fg-2)',
-              fontFamily: "'Outfit', sans-serif",
+              color: hasAssignedAny ? 'var(--bg-0)' : 'var(--text-dim)',
+              fontFamily: "var(--f-display)",
               fontWeight: 800,
               fontSize: 10,
               letterSpacing: '0.15em',
