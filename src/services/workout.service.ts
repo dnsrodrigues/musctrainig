@@ -94,21 +94,49 @@ export async function getStudentWorkouts(
 /**
  * Admin: retorna TODAS as fichas de alunos (is_template=false)
  * com o perfil do aluno embutido. Usado na tela de admin para ver fichas por aluno.
+ *
+ * Faz duas queries separadas para evitar ambiguidade de FK entre
+ * workouts.user_id e workouts.created_by (ambas apontam para profiles).
  */
 export async function getAllStudentWorkouts(): Promise<WorkoutWithStudent[]> {
-  const { data, error } = await supabase
+  // 1. Busca todas as fichas de alunos com exercícios
+  const { data: workoutsData, error: workoutsError } = await supabase
     .from('workouts')
     .select(`
       *,
-      exercises:workout_exercises(*, exercise:exercise_library(*)),
-      student:profiles(id, full_name, email)
+      exercises:workout_exercises(*, exercise:exercise_library(*))
     `)
     .eq('is_template', false)
     .eq('is_active', true)
     .order('created_at', { ascending: true })
 
-  if (error) throw new Error(error.message)
-  return (data ?? []) as WorkoutWithStudent[]
+  if (workoutsError) throw new Error(workoutsError.message)
+  const workouts = workoutsData ?? []
+
+  if (workouts.length === 0) return []
+
+  // 2. Coleta IDs únicos de alunos
+  const userIds = [...new Set(
+    workouts.map((w: Record<string, unknown>) => w.user_id as string).filter(Boolean)
+  )]
+
+  // 3. Busca perfis dos alunos em uma query separada
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name, email')
+    .in('id', userIds)
+
+  if (profilesError) throw new Error(profilesError.message)
+
+  const profileMap = Object.fromEntries(
+    (profilesData ?? []).map((p) => [p.id, p])
+  )
+
+  // 4. Junta fichas + perfis manualmente
+  return workouts.map((w: Record<string, unknown>) => ({
+    ...w,
+    student: profileMap[w.user_id as string] ?? undefined,
+  })) as WorkoutWithStudent[]
 }
 
 /** Retorna todos os usuários que têm uma determinada ficha (por template_id) */
