@@ -150,6 +150,18 @@ export interface AddExerciseDTO {
   order_index: number
 }
 
+// --- Admin — Ficha com dados do aluno ---
+
+export interface StudentSummary {
+  id: string
+  full_name: string
+  email: string
+}
+
+export interface WorkoutWithStudent extends Workout {
+  student?: StudentSummary
+}
+
 // --- Sessão de Treino ---
 
 export type WorkoutDifficulty = 'easy' | 'medium' | 'hard' | 'terrible'

@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase'
 import type {
   Workout,
   WorkoutExercise,
+  WorkoutWithStudent,
   Exercise,
   CreateWorkoutDTO,
   UpdateWorkoutDTO,
@@ -88,6 +89,26 @@ export async function getStudentWorkouts(
 
   if (error) throw new Error(error.message)
   return (data ?? []) as Workout[]
+}
+
+/**
+ * Admin: retorna TODAS as fichas de alunos (is_template=false)
+ * com o perfil do aluno embutido. Usado na tela de admin para ver fichas por aluno.
+ */
+export async function getAllStudentWorkouts(): Promise<WorkoutWithStudent[]> {
+  const { data, error } = await supabase
+    .from('workouts')
+    .select(`
+      *,
+      exercises:workout_exercises(*, exercise:exercise_library(*)),
+      student:profiles(id, full_name, email)
+    `)
+    .eq('is_template', false)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data ?? []) as WorkoutWithStudent[]
 }
 
 /** Retorna todos os usuários que têm uma determinada ficha (por template_id) */
