@@ -1,67 +1,98 @@
-﻿import { useTheme } from '../../context/ThemeContext'
-import { motion, AnimatePresence } from 'motion/react'
+import { useTheme, ACCENT_THEMES } from '../../context/ThemeContext'
 
 interface ThemeSwitcherProps {
-  className?: string
+  /** modo compacto (linha horizontal de bolinhas) ou expandido (com label) */
+  compact?: boolean
 }
 
-export function ThemeSwitcher({ className = '' }: ThemeSwitcherProps) {
-  const { mode, toggleMode } = useTheme()
-  const isDark = mode === 'dark'
+/**
+ * Seletor de cor accent. Em compact, mostra só os 6 círculos.
+ * No modo expandido, exibe label "TEMA · Nome" + bolinhas.
+ */
+export function ThemeSwitcher({ compact = false }: ThemeSwitcherProps) {
+  const { accentId, setAccent, currentAccent } = useTheme()
+
+  if (compact) {
+    return (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        {ACCENT_THEMES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setAccent(t.id)}
+            title={t.name}
+            aria-label={`Mudar accent para ${t.name}`}
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: t.accent,
+              cursor: 'pointer',
+              padding: 0,
+              border: accentId === t.id ? '2px solid var(--text)' : '2px solid transparent',
+              outline: accentId === t.id ? '1px solid var(--text-faint)' : 'none',
+              transition: 'transform 0.12s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          />
+        ))}
+      </div>
+    )
+  }
 
   return (
-    <button
-      type="button"
-      onClick={toggleMode}
-      title={isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
-      aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-      className={`relative flex items-center gap-2 cursor-pointer transition-all duration-150 ${className}`}
+    <div
       style={{
-        height: 28,
-        padding: '0 10px',
-        background: 'var(--surface)',
-        border: '1px solid var(--border-md)',
-        borderRadius: '4px',
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 10,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'var(--fg-2)',
-        outline: 'none',
-        minWidth: 76,
-        justifyContent: 'center',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-strong)'
-        e.currentTarget.style.color = 'var(--fg)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-md)'
-        e.currentTarget.style.color = 'var(--fg-2)'
+        padding: '12px 10px',
+        borderTop: '1px solid var(--hairline)',
+        marginTop: 4,
       }}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={mode}
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 6 }}
-          transition={{ duration: 0.15, ease: 'easeInOut' }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          {/* Ícone */}
-          <span style={{
-            fontSize: 11,
-            color: 'var(--accent)',
-            lineHeight: 1,
-          }}>
-            {isDark ? '◑' : '○'}
-          </span>
-
-          {/* Label */}
-          <span>{isDark ? 'Escuro' : 'Claro'}</span>
-        </motion.span>
-      </AnimatePresence>
-    </button>
+      <div
+        style={{
+          fontSize: 9,
+          color: 'var(--text-faint)',
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          marginBottom: 8,
+          paddingLeft: 4,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontWeight: 600,
+        }}
+      >
+        <span>Tema</span>
+        <span className="f-mono" style={{ color: 'var(--accent)' }}>
+          {currentAccent.name}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 6, paddingLeft: 4 }}>
+        {ACCENT_THEMES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setAccent(t.id)}
+            title={t.name}
+            aria-label={`Mudar accent para ${t.name}`}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: t.accent,
+              cursor: 'pointer',
+              padding: 0,
+              border: accentId === t.id ? '2px solid var(--text)' : '2px solid transparent',
+              boxShadow: accentId === t.id ? `0 0 0 1px ${t.accent}` : 'none',
+              transition: 'transform 0.12s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.15)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
