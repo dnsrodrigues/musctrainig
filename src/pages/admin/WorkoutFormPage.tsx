@@ -1,8 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, Plus, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Save, Loader2, GripVertical } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   getWorkoutById,
   createWorkout,
@@ -14,6 +31,72 @@ import { ExerciseRow } from '../../components/ExerciseRow'
 import { ExerciseSelector } from '../../components/ExerciseSelector'
 import type { WorkoutExercise, Exercise, WeekDay } from '../../types'
 import { WEEK_DAY_LABELS } from '../../types'
+
+// ─── Wrapper arrastável para cada exercício ───────────────────────────────────
+function SortableExerciseItem({
+  exercise,
+  index,
+  onRemove,
+  onChange,
+}: {
+  exercise: WorkoutExercise & { exercise?: Exercise }
+  index: number
+  onRemove: () => void
+  onChange: (updates: Partial<WorkoutExercise>) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: exercise.id })
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 6,
+      }}
+    >
+      {/* Handle de arrastar */}
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          paddingTop: 14,
+          paddingBottom: 4,
+          cursor: isDragging ? 'grabbing' : 'grab',
+          color: 'var(--fg-3)',
+          opacity: 0.5,
+          flexShrink: 0,
+          touchAction: 'none',
+          display: 'flex',
+          alignItems: 'flex-start',
+        }}
+      >
+        <GripVertical size={16} />
+      </div>
+
+      {/* Linha do exercício */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <ExerciseRow
+          item={exercise as any}
+          index={index}
+          editable
+          onRemove={onRemove}
+          onChange={onChange}
+        />
+      </div>
+    </div>
+  )
+}
 
 const ALL_WEEK_DAYS: WeekDay[] = [
   'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
@@ -27,6 +110,22 @@ export function WorkoutFormPage() {
 
   const isEditing = Boolean(id)
   const presetUserId = searchParams.get('userId') // criação via perfil do aluno
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setExercises((prev) => {
+      const oldIdx = prev.findIndex((e) => e.id === active.id)
+      const newIdx = prev.findIndex((e) => e.id === over.id)
+      return arrayMove(prev, oldIdx, newIdx)
+    })
+  }
 
   // Form state
   const [name, setName] = useState('')
@@ -402,20 +501,30 @@ export function WorkoutFormPage() {
                 )}
               </div>
 
-              {/* Lista */}
+              {/* Lista com drag & drop */}
               {exercises.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-                  {exercises.map((ex, idx) => (
-                    <ExerciseRow
-                      key={ex.id}
-                      item={ex as any}
-                      index={idx}
-                      editable
-                      onRemove={() => handleExerciseRemove(idx)}
-                      onChange={(updates) => handleExerciseChange(idx, updates)}
-                    />
-                  ))}
-                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={exercises.map((e) => e.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                      {exercises.map((ex, idx) => (
+                        <SortableExerciseItem
+                          key={ex.id}
+                          exercise={ex}
+                          index={idx}
+                          onRemove={() => handleExerciseRemove(idx)}
+                          onChange={(updates) => handleExerciseChange(idx, updates)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
               )}
 
               {/* Botão adicionar */}

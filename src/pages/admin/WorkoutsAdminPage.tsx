@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { ArrowLeft, Plus, RefreshCw, Edit2, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Plus, RefreshCw, Edit2, ChevronDown, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
 import { getTemplates, getWorkoutUsageCount, deactivateWorkout, getAllStudentWorkouts } from '../../services/workout.service'
 import { WorkoutCard } from '../../components/WorkoutCard'
 import { AssignWorkoutModal } from '../../components/AssignWorkoutModal'
@@ -18,6 +18,7 @@ export function WorkoutsAdminPage() {
   const [assignTarget, setAssignTarget] = useState<Workout | null>(null)
   // Controla quais alunos estão com a seção expandida
   const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set())
+  const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -79,17 +80,25 @@ export function WorkoutsAdminPage() {
     }, {})
   )
 
-  // Disponível para uso futuro via botão dedicado na página
-  async function handleDeactivate(workoutId: string) {
-    if (!confirm('Desativar esta ficha? Alunos que a têm atribuída continuarão vendo-a.')) return
+  /** Desativa (soft delete) um template da biblioteca */
+  async function handleDeleteTemplate(workoutId: string) {
     try {
       await deactivateWorkout(workoutId)
       setWorkouts((prev) => prev.filter((w) => w.id !== workoutId))
     } catch {
-      alert('Erro ao desativar ficha.')
+      // erro silencioso — o WorkoutCard já mostrou confirmação
     }
   }
-  void handleDeactivate // suprime warning — será usado na Fase 9
+
+  /** Desvincula (soft delete) a ficha de um aluno específico */
+  async function handleUnlinkStudentWorkout(workoutId: string) {
+    try {
+      await deactivateWorkout(workoutId)
+      setStudentWorkouts((prev) => prev.filter((w) => w.id !== workoutId))
+    } catch {
+      // erro silencioso
+    }
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -263,6 +272,7 @@ export function WorkoutsAdminPage() {
                         onClick={() => navigate(`/admin/workouts/${workout.id}/edit`)}
                         onEdit={() => navigate(`/admin/workouts/${workout.id}/edit`)}
                         onAssign={() => setAssignTarget(workout)}
+                        onDelete={() => handleDeleteTemplate(workout.id)}
                       />
                     ))}
                   </div>
@@ -438,39 +448,98 @@ export function WorkoutsAdminPage() {
                                       </div>
                                     </div>
 
-                                    {/* Botão editar */}
-                                    <button
-                                      onClick={() => navigate(`/admin/workouts/${workout.id}/edit`)}
-                                      title="Editar ficha"
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 4,
-                                        background: 'transparent',
-                                        border: '1px solid var(--border-md)',
-                                        borderRadius: 4,
-                                        padding: '5px 10px',
-                                        color: 'var(--fg-2)',
-                                        fontFamily: "'DM Mono', monospace",
-                                        fontSize: 9,
-                                        letterSpacing: '0.1em',
-                                        textTransform: 'uppercase',
-                                        cursor: 'pointer',
-                                        flexShrink: 0,
-                                        transition: 'border-color 0.15s, color 0.15s',
-                                      }}
-                                      onMouseEnter={(e) => {
-                                        e.currentTarget.style.borderColor = 'var(--accent)'
-                                        e.currentTarget.style.color = 'var(--accent)'
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.currentTarget.style.borderColor = 'var(--border-md)'
-                                        e.currentTarget.style.color = 'var(--fg-2)'
-                                      }}
-                                    >
-                                      <Edit2 size={10} />
-                                      Editar
-                                    </button>
+                                    {/* Ações */}
+                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                      {confirmUnlinkId === workout.id ? (
+                                        /* Confirmação inline */
+                                        <div style={{
+                                          display: 'flex', alignItems: 'center', gap: 5,
+                                          background: 'rgba(239,68,68,0.08)',
+                                          border: '1px solid rgba(239,68,68,0.25)',
+                                          borderRadius: 4, padding: '4px 8px',
+                                        }}>
+                                          <AlertTriangle size={10} style={{ color: 'var(--danger)' }} />
+                                          <span style={{
+                                            fontFamily: "'DM Mono', monospace", fontSize: 8,
+                                            color: 'var(--danger)', letterSpacing: '0.06em',
+                                          }}>
+                                            Desvincular?
+                                          </span>
+                                          <button
+                                            onClick={() => setConfirmUnlinkId(null)}
+                                            style={{
+                                              background: 'transparent', border: '1px solid var(--border-md)',
+                                              borderRadius: 3, padding: '2px 6px', color: 'var(--fg-3)',
+                                              fontFamily: "'DM Mono', monospace", fontSize: 7,
+                                              textTransform: 'uppercase', cursor: 'pointer',
+                                            }}
+                                          >
+                                            Não
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setConfirmUnlinkId(null)
+                                              handleUnlinkStudentWorkout(workout.id)
+                                            }}
+                                            style={{
+                                              background: 'var(--danger)', border: 'none',
+                                              borderRadius: 3, padding: '2px 6px', color: '#fff',
+                                              fontFamily: "'DM Mono', monospace", fontSize: 7,
+                                              textTransform: 'uppercase', cursor: 'pointer',
+                                            }}
+                                          >
+                                            Sim
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={() => navigate(`/admin/workouts/${workout.id}/edit`)}
+                                            title="Editar ficha"
+                                            style={{
+                                              display: 'flex', alignItems: 'center', gap: 4,
+                                              background: 'transparent',
+                                              border: '1px solid var(--border-md)',
+                                              borderRadius: 4, padding: '5px 10px',
+                                              color: 'var(--fg-2)',
+                                              fontFamily: "'DM Mono', monospace", fontSize: 9,
+                                              letterSpacing: '0.1em', textTransform: 'uppercase',
+                                              cursor: 'pointer',
+                                              transition: 'border-color 0.15s, color 0.15s',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.borderColor = 'var(--accent)'
+                                              e.currentTarget.style.color = 'var(--accent)'
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.borderColor = 'var(--border-md)'
+                                              e.currentTarget.style.color = 'var(--fg-2)'
+                                            }}
+                                          >
+                                            <Edit2 size={10} />
+                                            Editar
+                                          </button>
+                                          <button
+                                            onClick={() => setConfirmUnlinkId(workout.id)}
+                                            title="Desvincular ficha do aluno"
+                                            style={{
+                                              display: 'flex', alignItems: 'center', gap: 4,
+                                              background: 'transparent',
+                                              border: '1px solid rgba(239,68,68,0.3)',
+                                              borderRadius: 4, padding: '5px 10px',
+                                              color: 'var(--danger)',
+                                              fontFamily: "'DM Mono', monospace", fontSize: 9,
+                                              letterSpacing: '0.1em', textTransform: 'uppercase',
+                                              cursor: 'pointer',
+                                              transition: 'border-color 0.15s',
+                                            }}
+                                          >
+                                            <Trash2 size={10} />
+                                            Desvincular
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
                                 )
                               })}
