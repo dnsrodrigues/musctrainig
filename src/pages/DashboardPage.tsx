@@ -86,12 +86,6 @@ export function DashboardPage() {
         title={`${getGreeting()}, ${firstName.toUpperCase()}`}
         actions={
           <>
-            <button className="btn ghost" title="Notificações">
-              <Icon name="bell" size={16} />
-            </button>
-            <button className="btn ghost" title="Buscar">
-              <Icon name="search" size={16} />
-            </button>
             {!isAdmin && todayWorkout && (
               <button
                 className="btn primary"
