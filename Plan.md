@@ -221,22 +221,179 @@ WorkoutDetailPage.tsx: botão "Iniciar Treino →" no topo → navigate(`/workou
 
 ---
 
-### FASE 7 — Histórico e progressão ⏳
-**Complexidade:** 🟡 Simples → usar `/frontend-design`
+### FASE 7 — Histórico & Progressão ⏳
+**Complexidade:** 🟡 Média  
+**Spec:** [2026-05-26-historico-progressao-design.md](docs/superpowers/specs/2026-05-26-historico-progressao-design.md)
 
-**O que entrega:** Lista de treinos realizados + gráficos de evolução de carga e frequência.
+**O que entrega:** Histórico completo de sessões, gráficos de progressão de carga e frequência, registro de peso corporal e medidas com gráficos de evolução. Cards de resumo no Dashboard.
 
-**Arquivos a criar:**
+---
+
+#### Plano de implementação — ordem de execução
+
+**Passo 1 — Instalar Recharts**
+```bash
+npm install recharts
 ```
-src/services/history.service.ts
-src/pages/HistoryPage.tsx
-src/pages/SessionDetailPage.tsx
-src/pages/ProgressPage.tsx
-src/components/charts/LoadProgressChart.tsx
-src/components/charts/WorkoutFrequencyChart.tsx
+Recharts é a lib de gráficos especificada no PRD. Instalar antes de qualquer componente de gráfico.
+
+---
+
+**Passo 2 — Novos tipos** `src/types/index.ts`
+```ts
+// Adicionar ao arquivo existente:
+
+interface WorkoutLogDetail extends WorkoutLog {
+  workout?: Workout
+  exercise_logs: ExerciseLogDetail[]
+}
+
+interface ExerciseLogDetail extends ExerciseLog {
+  exercise: Exercise  // non-optional
+}
+
+interface LoadPoint {
+  date: string      // 'YYYY-MM-DD'
+  maxLoad: number   // kg máximo registrado naquela sessão
+}
+
+interface WeekFrequency {
+  week: string      // 'YYYY-MM-DD' (segunda-feira da semana)
+  count: number     // quantidade de treinos naquela semana
+}
 ```
 
-**Critério de conclusão:** Aluno vê lista de treinos passados e gráfico de evolução de pelo menos um exercício.
+---
+
+**Passo 3 — Serviço de histórico** `src/services/history.service.ts`
+```
+getWorkoutHistory(userId)
+  → SELECT workout_logs + JOIN workouts, ORDER BY started_at DESC
+
+getSessionDetail(logId)
+  → SELECT workout_log + exercise_logs + JOIN exercise_library
+
+getExercisesTrainedByUser(userId)
+  → SELECT DISTINCT exercícios via exercise_logs → workout_logs WHERE user_id
+
+getLoadProgression(userId, exerciseId)
+  → Busca exercise_logs do exercício, agrega MAX(load_kg) por data em JS
+
+getWeeklyFrequency(userId)
+  → Busca workout_logs das últimas 8 semanas, agrupa por semana em JS
+```
+
+---
+
+**Passo 4 — Serviço de medidas** `src/services/measurements.service.ts`
+```
+getUserWeights(userId)        → SELECT user_weights ORDER BY measured_at DESC
+addUserWeight(userId, kg, at) → INSERT INTO user_weights
+getBodyMeasurements(userId)   → SELECT body_measurements LIMIT 3
+addBodyMeasurement(userId, d) → INSERT INTO body_measurements
+```
+
+---
+
+**Passo 5 — Componentes de gráficos** `src/components/charts/`
+```
+LoadProgressChart.tsx  — LineChart (carga × data), cor lime, tooltip customizado
+FrequencyChart.tsx     — BarChart (treinos × semana), barras arredondadas, cor lime
+WeightChart.tsx        — LineChart com área preenchida (peso × data), gradiente lime
+```
+Props e contratos conforme spec §4.
+
+---
+
+**Passo 6 — Modais de registro**
+```
+src/components/WeightEntryModal.tsx
+  → Bottom sheet (padrão WorkoutFinishModal)
+  → Campos: peso (kg, pré-preenchido com último valor), data (default hoje)
+  → Props: isOpen, onClose, onSaved(weight)
+
+src/components/MeasurementEntryModal.tsx
+  → Bottom sheet
+  → Campos opcionais: cintura, quadril, abdômen, coxa, braço, peitoral, panturrilha (cm)
+  → Salvar habilitado se ≥ 1 campo preenchido
+  → Props: isOpen, onClose, onSaved(measurement)
+```
+
+---
+
+**Passo 7 — HistoryPage** `src/pages/HistoryPage.tsx`
+```
+Rota: /historico
+- Lista cronológica reversa de workout_logs
+- Card por sessão: data, nome da ficha, duração, emoji dificuldade, nº séries
+- Toque → /historico/:logId
+- Estado vazio: botão "Começar agora →" → /workouts
+```
+
+---
+
+**Passo 8 — SessionDetailPage** `src/pages/SessionDetailPage.tsx`
+```
+Rota: /historico/:logId
+- Header: ← + nome da ficha + data
+- Bloco de meta: duração · dificuldade · séries totais
+- Notas (se existirem)
+- Por exercício: nome + grupo muscular + tabela de séries (nº | reps | kg ✓)
+- Botão "📈 ver evolução →" → /progresso?exercise=:exerciseId
+```
+
+---
+
+**Passo 9 — ProgressPage** `src/pages/ProgressPage.tsx`
+```
+Rota: /progresso
+- Lê ?exercise= da URL (pré-seleciona dropdown)
+- Bloco 1: dropdown de exercício + LoadProgressChart + chip de variação total
+- Bloco 2: FrequencyChart (últimas 8 semanas)
+- Estado vazio global se nenhum treino registrado
+```
+
+---
+
+**Passo 10 — MeasurementsPage** `src/pages/MeasurementsPage.tsx`
+```
+Rota: /medidas
+- Seção peso: WeightChart + lista últimos 10 + botão "+ Registrar peso" → WeightEntryModal
+- Seção medidas: grid do último registro + lista últimos 3 + botão "+ Nova medição" → MeasurementEntryModal
+```
+
+---
+
+**Passo 11 — Atualizar DashboardPage** `src/pages/DashboardPage.tsx`
+```
+Adicionar 3 cards abaixo do card de treino do dia:
+- "Último treino" (data, ficha, duração, dificuldade) → /historico
+- "Progresso" (sequência semanal + peso atual) → /progresso
+- "Medidas" (peso atual + variação total) → /medidas
+Cada card mostra estado vazio se sem dados.
+```
+
+---
+
+**Passo 12 — Rotas** `src/App.tsx`
+```tsx
+<Route path="/historico" element={<HistoryPage />} />
+<Route path="/historico/:logId" element={<SessionDetailPage />} />
+<Route path="/progresso" element={<ProgressPage />} />
+<Route path="/medidas" element={<MeasurementsPage />} />
+```
+
+---
+
+**Critério de conclusão:**
+- [ ] Aluno vê lista de sessões em `/historico`
+- [ ] Aluno abre detalhe de sessão com todas as séries
+- [ ] Gráfico de evolução de carga funciona para pelo menos um exercício
+- [ ] Gráfico de frequência semanal exibe dados reais
+- [ ] Aluno registra peso e vê gráfico de evolução
+- [ ] Aluno registra medidas corporais
+- [ ] Cards de resumo no Dashboard com dados reais
+- [ ] Build sem erros de TypeScript
 
 ---
 
