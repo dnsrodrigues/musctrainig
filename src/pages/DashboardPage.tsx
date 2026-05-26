@@ -1,583 +1,494 @@
-import { useState, useEffect } from 'react'
-import { LogOut, ChevronRight, Dumbbell, BarChart2, Scale, User, Star } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
-import { Avatar } from '../components/ui/Avatar'
-import { ThemeSwitcher } from '../components/ui/ThemeSwitcher'
+import { Topbar } from '../components/layout/Topbar'
+import { Icon } from '../components/ui/Icon'
 import { getWorkoutHistory } from '../services/history.service'
+import { getMyWorkouts } from '../services/workout.service'
 import { getUserWeights } from '../services/measurements.service'
-import type { WorkoutLog, UserWeight } from '../types'
+import type { Workout, WeekDay, WorkoutLog, UserWeight } from '../types'
+import { WEEK_DAY_SHORT, MUSCLE_GROUP_LABELS } from '../types'
 
-const DIFFICULTY_EMOJI: Record<string, string> = {
-  easy: '😊', medium: '💪', hard: '🔥', terrible: '💀',
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const DAY_MAP: Record<number, WeekDay> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
 }
 
-// ─── Saudação por horário ──────────────────────────────────────────────────────
+const WEEK_ORDER: WeekDay[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
 function getGreeting(): string {
   const h = new Date().getHours()
-  if (h < 12) return 'Bom dia'
-  if (h < 18) return 'Boa tarde'
-  return 'Boa noite'
+  if (h < 12) return 'BOM DIA'
+  if (h < 18) return 'BOA TARDE'
+  return 'BOA NOITE'
 }
 
-// ─── Card de navegação ─────────────────────────────────────────────────────────
-interface NavCardProps {
-  to: string
-  icon: React.ReactNode
-  iconBg: string
-  title: string
-  subtitle: string
-  accentColor?: string
-  delay?: number
+function formatTodayHeader(): string {
+  const d = new Date()
+  const parts = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })
+  return parts.toUpperCase().replace(/\./g, '')
 }
 
-function NavCard({ to, icon, iconBg, title, subtitle, accentColor = 'rgba(108,142,247,0.3)', delay = 0 }: NavCardProps) {
-  const [hovered, setHovered] = useState(false)
+// ─── Página ──────────────────────────────────────────────────────────────────
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <Link
-        to={to}
-        style={{ textDecoration: 'none', display: 'block' }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-          padding: '16px 18px',
-          background: hovered ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: 20,
-          border: hovered
-            ? `1px solid ${accentColor}`
-            : '1px solid rgba(255,255,255,0.1)',
-          boxShadow: hovered
-            ? `0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px ${accentColor}`
-            : '0 8px 32px rgba(0,0,0,0.3)',
-          transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
-          cursor: 'pointer',
-        }}>
-          {/* Ícone */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 44,
-            height: 44,
-            borderRadius: 12,
-            background: iconBg,
-            flexShrink: 0,
-            transition: 'transform 0.2s',
-            transform: hovered ? 'scale(1.08)' : 'scale(1)',
-          }}>
-            {icon}
-          </div>
-
-          {/* Texto */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: 15,
-              fontWeight: 700,
-              color: 'var(--fg)',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.2,
-            }}>
-              {title}
-            </div>
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
-              color: 'var(--fg-3)',
-              letterSpacing: '0.04em',
-              fontStyle: 'italic',
-              marginTop: 3,
-            }}>
-              {subtitle}
-            </div>
-          </div>
-
-          <ChevronRight
-            size={16}
-            style={{
-              color: hovered ? 'var(--accent-light)' : 'var(--fg-3)',
-              transition: 'color 0.2s, transform 0.2s',
-              transform: hovered ? 'translateX(3px)' : 'translateX(0)',
-              flexShrink: 0,
-            }}
-          />
-        </div>
-      </Link>
-    </motion.div>
-  )
-}
-
-// ─── Página Principal ──────────────────────────────────────────────────────────
 export function DashboardPage() {
-  const { profile, isAdmin, signOut } = useAuth()
-  const [lastSession, setLastSession] = useState<WorkoutLog | null | undefined>(undefined)
-  const [workoutCount, setWorkoutCount] = useState<number | null>(null)
-  const [lastWeight, setLastWeight] = useState<UserWeight | null | undefined>(undefined)
+  const { profile, isAdmin } = useAuth()
+  const navigate = useNavigate()
 
-  const nameParts = (profile?.full_name ?? 'Atleta').split(' ')
-  const firstName = nameParts[0]
-  const lastName  = nameParts.slice(1).join(' ')
+  const [workouts, setWorkouts] = useState<Workout[]>([])
+  const [history, setHistory] = useState<WorkoutLog[]>([])
+  const [lastWeight, setLastWeight] = useState<UserWeight | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const firstName = (profile?.full_name ?? 'Atleta').split(' ')[0]
+  const todayKey = DAY_MAP[new Date().getDay()]
 
   useEffect(() => {
-    if (!profile?.id || isAdmin) return
-    getWorkoutHistory(profile.id)
-      .then((data) => {
-        setLastSession(data[0] ?? null)
-        setWorkoutCount(data.length)
+    if (!profile?.id) return
+    setLoading(true)
+    Promise.all([
+      isAdmin ? Promise.resolve([] as Workout[]) : getMyWorkouts(profile.id),
+      isAdmin ? Promise.resolve([] as WorkoutLog[]) : getWorkoutHistory(profile.id),
+      isAdmin ? Promise.resolve([] as UserWeight[]) : getUserWeights(profile.id),
+    ])
+      .then(([w, h, weights]) => {
+        setWorkouts(w)
+        setHistory(h)
+        setLastWeight(weights[0] ?? null)
       })
-      .catch(() => { setLastSession(null); setWorkoutCount(0) })
-    getUserWeights(profile.id)
-      .then((data) => setLastWeight(data[0] ?? null))
-      .catch(() => setLastWeight(null))
+      .finally(() => setLoading(false))
   }, [profile?.id, isAdmin])
 
-  async function handleLogout() {
-    await signOut()
-  }
+  const todayWorkout = workouts.find((w) => w.week_days.includes(todayKey))
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('pt-BR', {
-      weekday: 'short', day: '2-digit', month: 'short',
-    })
-  }
+  // Stats
+  const workoutCount = history.length
+  const lastSession = history[0]
+
+  // PRs no mês (placeholder — futuro: calcular do exercise_logs)
+  const prsThisMonth = '—'
+
+  // Volume estimado (placeholder)
+  const volumeWeek = '—'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-      {/* ── Header ──────────────────────────────────────── */}
-      <header
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 20,
-          padding: '12px 20px',
-          background: 'rgba(6,7,26,0.85)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(108,142,247,0.15)',
-        }}
-      >
-        <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Logo */}
-          <div>
-            <div style={{
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: 13,
-              fontWeight: 800,
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              backgroundImage: 'linear-gradient(160deg, #8ba8fb 0%, #ffffff 60%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-            }}>
-              MUSCLE TRAINING
-            </div>
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              fontStyle: 'italic',
-              color: 'var(--fg-3)',
-              letterSpacing: '0.1em',
-              marginTop: 1,
-            }}>
-              // {isAdmin ? 'painel admin' : 'bem-vindo de volta'}
-            </div>
-          </div>
-
-          {/* Ações */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ThemeSwitcher />
-
-            <button
-              onClick={handleLogout}
-              title="Sair"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '6px 12px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 10,
-                color: 'var(--fg-2)',
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'background 0.2s, color 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(248,113,113,0.1)'
-                e.currentTarget.style.color = 'var(--danger)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.color = 'var(--fg-2)'
-              }}
-            >
-              <LogOut size={13} />
-              Sair
+    <>
+      <Topbar
+        eyebrow={formatTodayHeader()}
+        title={`${getGreeting()}, ${firstName.toUpperCase()}`}
+        actions={
+          <>
+            <button className="btn ghost" title="Notificações">
+              <Icon name="bell" size={16} />
             </button>
-
-            {profile?.full_name && (
-              <Avatar name={profile.full_name} size="sm" />
+            <button className="btn ghost" title="Buscar">
+              <Icon name="search" size={16} />
+            </button>
+            {!isAdmin && todayWorkout && (
+              <button
+                className="btn primary"
+                onClick={() => navigate(`/workouts/${todayWorkout.id}/session`)}
+              >
+                <Icon name="play" size={12} /> Iniciar treino
+              </button>
             )}
-          </div>
-        </div>
-      </header>
-
-      {/* ── Conteúdo ─────────────────────────────────────── */}
-      <main style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px', position: 'relative', zIndex: 1 }}>
-
-        {/* ── Hero / Saudação ───────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            position: 'relative',
-            background: 'rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: 20,
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            padding: '24px 22px',
-            marginBottom: 12,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Hatch decorativo */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 18px, rgba(108,142,247,0.02) 18px, rgba(108,142,247,0.02) 19px)',
-            pointerEvents: 'none',
-            borderRadius: 20,
-          }} />
-
-          {/* Blob de destaque no canto */}
-          <div style={{
-            position: 'absolute',
-            top: -40, right: -40,
-            width: 160, height: 160,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(196,79,224,0.12) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-            <div>
-              {/* Saudação */}
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 10,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: 'var(--accent)',
-                marginBottom: 6,
-              }}>
-                // {getGreeting()}
-              </div>
-
-              {/* Nome com gradient */}
-              <h1 style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: 30,
-                fontWeight: 800,
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
-                margin: '0 0 12px',
-              }}>
-                <span style={{
-                  backgroundImage: 'linear-gradient(160deg, #8ba8fb 0%, #ffffff 60%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  color: 'transparent',
-                }}>
-                  {firstName}
-                </span>
-                {lastName && (
-                  <span style={{ color: 'var(--fg-2)', fontStyle: 'italic' }}> {lastName}</span>
-                )}
-              </h1>
-
-              {/* Badge role */}
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
-                borderRadius: '50rem',
-                background: isAdmin
-                  ? 'rgba(196,79,224,0.1)'
-                  : 'rgba(108,142,247,0.1)',
-                border: isAdmin
-                  ? '1px solid rgba(196,79,224,0.3)'
-                  : '1px solid rgba(108,142,247,0.3)',
-              }}>
-                {isAdmin
-                  ? <Star size={11} color="var(--accent-2)" />
-                  : <Dumbbell size={11} color="var(--accent)" />
-                }
-                <span style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
-                  letterSpacing: '0.08em',
-                  color: isAdmin ? 'var(--accent-2)' : 'var(--accent-light)',
-                  textTransform: 'uppercase',
-                }}>
-                  {isAdmin ? 'Personal Trainer' : 'Em treino'}
-                </span>
-              </div>
-            </div>
-
-            {profile?.full_name && (
-              <Avatar name={profile.full_name} size="md" />
+            {isAdmin && (
+              <button className="btn primary" onClick={() => navigate('/admin/workouts/new')}>
+                <Icon name="plus" size={12} /> Nova ficha
+              </button>
             )}
-          </div>
-        </motion.div>
+          </>
+        }
+      />
 
-        {/* ── Stats grid ───────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 8,
-            marginBottom: 12,
-          }}
-        >
-          {[
-            { label: 'Treinos',  value: workoutCount === null ? '…' : String(workoutCount), glow: 'rgba(108,142,247,0.2)', border: 'rgba(108,142,247,0.25)' },
-            { label: 'Peso kg',  value: profile?.weight        ? String(profile.weight)        : '—', glow: 'rgba(196,79,224,0.15)', border: 'rgba(196,79,224,0.2)' },
-            { label: 'Alvo kg',  value: profile?.target_weight ? String(profile.target_weight) : '—', glow: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.2)' },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                borderRadius: 16,
-                border: `1px solid ${stat.border}`,
-                boxShadow: `0 4px 16px ${stat.glow}`,
-                padding: '14px 10px',
-                textAlign: 'center',
-              }}
-            >
-              <span style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: 28,
-                fontWeight: 800,
-                backgroundImage: 'linear-gradient(160deg, #8ba8fb 0%, #fff 70%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent',
-                display: 'block',
-                lineHeight: 1,
-                letterSpacing: '-0.02em',
-              }}>
-                {stat.value}
-              </span>
-              <div style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 8,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: 'var(--fg-3)',
-                marginTop: 5,
-              }}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* ── Seção: Navegação principal ─────────────── */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--fg-3)',
-            marginBottom: 10,
-            paddingLeft: 2,
-          }}>
-            // acesso rápido
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <NavCard
-              to={isAdmin ? '/admin/workouts' : '/workouts'}
-              icon={<Dumbbell size={20} color="var(--accent-light)" />}
-              iconBg="rgba(108,142,247,0.12)"
-              title={isAdmin ? 'Biblioteca de Fichas' : 'Minhas Fichas'}
-              subtitle={isAdmin ? '// criar e gerenciar fichas de treino' : '// ver fichas e treino de hoje'}
-              accentColor="rgba(108,142,247,0.4)"
-              delay={0.12}
-            />
-
-            <NavCard
-              to="/perfil"
-              icon={<User size={20} color="var(--accent-2)" />}
-              iconBg="rgba(196,79,224,0.1)"
-              title="Meu Perfil"
-              subtitle="// ver e editar dados pessoais"
-              accentColor="rgba(196,79,224,0.35)"
-              delay={0.18}
-            />
-          </div>
-        </div>
-
-        {/* ── Acompanhamento (apenas aluno) ──────────── */}
-        {!isAdmin && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--fg-3)',
-              marginBottom: 10,
-              marginTop: 4,
-              paddingLeft: 2,
-            }}>
-              // acompanhamento
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-
-              {/* Histórico de Treinos */}
-              <NavCard
-                to="/historico"
-                icon={<BarChart2 size={20} color="var(--accent-light)" />}
-                iconBg="rgba(108,142,247,0.1)"
-                title="Histórico de Treinos"
-                subtitle={
-                  lastSession === undefined
-                    ? '// carregando...'
-                    : lastSession === null
-                      ? '// nenhum treino registrado ainda'
-                      : `// último: ${formatDate(lastSession.started_at)} ${lastSession.difficulty ? DIFFICULTY_EMOJI[lastSession.difficulty] : ''} ${lastSession.duration_minutes ? `— ${lastSession.duration_minutes}min` : ''}`
-                }
-                accentColor="rgba(108,142,247,0.35)"
-                delay={0.26}
-              />
-
-              {/* Gráficos de Progresso */}
-              <NavCard
-                to="/progresso"
-                icon={<BarChart2 size={20} color="var(--accent-2)" />}
-                iconBg="rgba(196,79,224,0.1)"
-                title="Gráficos de Progresso"
-                subtitle="// evolução de carga e frequência semanal"
-                accentColor="rgba(196,79,224,0.3)"
-                delay={0.3}
-              />
-
-              {/* Peso & Medidas */}
-              <NavCard
-                to="/medidas"
-                icon={<Scale size={20} color="var(--success)" />}
-                iconBg="rgba(74,222,128,0.1)"
-                title="Peso & Medidas"
-                subtitle={
-                  lastWeight === undefined
-                    ? '// carregando...'
-                    : lastWeight === null
-                      ? '// registre seu peso para acompanhar'
-                      : `// atual: ${Number(lastWeight.weight_kg).toFixed(1)} kg`
-                }
-                accentColor="rgba(74,222,128,0.3)"
-                delay={0.34}
-              />
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── Status das fases (apenas admin) ─────────── */}
+      <div className="content">
+        {/* ════════ ADMIN: visão simplificada ════════ */}
         {isAdmin && (
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              borderRadius: 20,
-              border: '1px solid rgba(108,142,247,0.2)',
-              padding: '20px',
-              marginTop: 4,
-            }}
+            transition={{ duration: 0.4 }}
+            className="card card-accent"
+            style={{ padding: 32, minHeight: 200 }}
           >
-            <div style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--accent)',
-              marginBottom: 14,
-            }}>
-              // status das fases
+            <div className="eyebrow" style={{ color: 'rgba(0,0,0,0.55)' }}>PAINEL DO PERSONAL</div>
+            <h1 className="f-display" style={{ fontSize: 72, lineHeight: 0.9, margin: '8px 0' }}>
+              GERENCIE SUAS FICHAS
+            </h1>
+            <div style={{ fontSize: 15, color: 'rgba(0,0,0,0.7)', marginBottom: 24 }}>
+              Crie templates, atribua a alunos e acompanhe o progresso.
             </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {[
-                { label: 'Auth',       done: true  },
-                { label: 'Perfil',     done: true  },
-                { label: 'Design v3',  done: true  },
-                { label: 'Fichas',     done: true  },
-                { label: 'Treino',     done: false },
-                { label: 'Histórico',  done: false },
-              ].map((phase) => (
-                <span
-                  key={phase.label}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    padding: '4px 10px',
-                    borderRadius: '50rem',
-                    border: '1px solid',
-                    borderColor: phase.done ? 'rgba(108,142,247,0.35)' : 'rgba(255,255,255,0.08)',
-                    background: phase.done ? 'rgba(108,142,247,0.1)' : 'transparent',
-                    color: phase.done ? 'var(--accent-light)' : 'var(--fg-3)',
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 10,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {phase.done ? '✓' : '○'} {phase.label}
-                </span>
-              ))}
-            </div>
+            <Link to="/admin/workouts" className="btn lg" style={{ background: '#0a0a0a', color: 'var(--accent)', borderColor: '#0a0a0a' }}>
+              Ver fichas <Icon name="arrow" size={14} />
+            </Link>
           </motion.div>
         )}
 
-      </main>
-    </div>
+        {/* ════════ ALUNO: hero + stats ════════ */}
+        {!isAdmin && (
+          <>
+            <div className="forja-dash-grid">
+              {/* Hero — treino de hoje */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className={todayWorkout ? 'card card-accent' : 'card'}
+                style={{ padding: 32, position: 'relative', overflow: 'hidden', minHeight: 280 }}
+              >
+                {todayWorkout ? (
+                  <>
+                    {/* Big number watermark */}
+                    <div className="forja-dash-watermark">
+                      {workouts.indexOf(todayWorkout) + 1 < 10
+                        ? `0${workouts.indexOf(todayWorkout) + 1}`
+                        : workouts.indexOf(todayWorkout) + 1}
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <div className="eyebrow" style={{ color: 'rgba(0,0,0,0.55)' }}>
+                        TREINO DE HOJE
+                      </div>
+                      <h1 className="f-display" style={{ fontSize: 88, lineHeight: 0.9, margin: '8px 0 4px' }}>
+                        {todayWorkout.name.toUpperCase()}
+                      </h1>
+                      <div style={{ fontSize: 16, color: 'rgba(0,0,0,0.7)' }}>
+                        {(() => {
+                          const groups = Array.from(new Set(
+                            (todayWorkout.exercises ?? [])
+                              .map((e) => e.exercise?.muscle_group)
+                              .filter(Boolean)
+                          ))
+                          return groups.map((g) => MUSCLE_GROUP_LABELS[g!]).join(' · ') || 'Treino completo'
+                        })()}
+                      </div>
+                      <div style={{ display: 'flex', gap: 24, marginTop: 28, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.15em' }}>EXERCÍCIOS</div>
+                          <div className="f-display" style={{ fontSize: 36 }}>
+                            {String(todayWorkout.exercises?.length ?? 0).padStart(2, '0')}
+                          </div>
+                        </div>
+                        <div style={{ width: 1, height: 40, background: 'rgba(0,0,0,0.2)' }} />
+                        <div>
+                          <div style={{ fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.15em' }}>SÉRIES TOTAIS</div>
+                          <div className="f-display" style={{ fontSize: 36 }}>
+                            {(todayWorkout.exercises ?? []).reduce((sum, e) => sum + (e.sets ?? 0), 0)}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 28, flexWrap: 'wrap' }}>
+                        <button
+                          className="btn lg"
+                          onClick={() => navigate(`/workouts/${todayWorkout.id}/session`)}
+                          style={{ background: '#0a0a0a', color: 'var(--accent)', borderColor: '#0a0a0a' }}
+                        >
+                          <Icon name="play" size={14} /> Começar agora
+                        </button>
+                        <button
+                          className="btn lg"
+                          onClick={() => navigate(`/workouts/${todayWorkout.id}`)}
+                          style={{ background: 'transparent', color: '#0a0a0a', borderColor: 'rgba(0,0,0,0.3)' }}
+                        >
+                          Ver detalhes
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="eyebrow">SEM TREINO HOJE</div>
+                    <h1 className="f-display" style={{ fontSize: 64, lineHeight: 0.95, margin: '8px 0 16px', color: 'var(--text)' }}>
+                      DIA DE DESCANSO
+                    </h1>
+                    <div style={{ fontSize: 14, color: 'var(--text-dim)', marginBottom: 24 }}>
+                      Aproveite para recuperar — mobilidade leve, hidratação e sono.
+                    </div>
+                    {workouts.length > 0 && (
+                      <Link to="/workouts" className="btn">
+                        Ver todas as fichas <Icon name="arrow" size={14} />
+                      </Link>
+                    )}
+                  </>
+                )}
+              </motion.div>
+
+              {/* Stats column */}
+              <div className="col gap-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.08 }}
+                  className="card"
+                  style={{ display: 'flex', alignItems: 'flex-end', gap: 18, minHeight: 120 }}
+                >
+                  <div>
+                    <div className="stat-label">Treinos</div>
+                    <div className="stat-num">
+                      {loading ? '…' : workoutCount}
+                      <span className="stat-unit">total</span>
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', gap: 3, alignItems: 'flex-end', paddingBottom: 6 }}>
+                    {[40, 55, 30, 70, 65, 80, 90, 50, 75, 85, 60, 95].map((h, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          flex: 1,
+                          height: h * 0.6,
+                          background: i > 8 ? 'var(--accent)' : 'var(--bg-3)',
+                          borderRadius: 2,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.12 }}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
+                >
+                  <Link to="/medidas" className="card" style={{ textDecoration: 'none' }}>
+                    <div className="stat-label">Peso atual</div>
+                    <div className="stat-num" style={{ fontSize: 44 }}>
+                      {lastWeight ? Number(lastWeight.weight_kg).toFixed(1) : '—'}
+                      <span className="stat-unit">kg</span>
+                    </div>
+                    <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
+                      {lastWeight ? 'registre nova medição' : 'registre seu peso'}
+                    </div>
+                  </Link>
+                  <Link to="/progresso" className="card" style={{ textDecoration: 'none' }}>
+                    <div className="stat-label">PRs no mês</div>
+                    <div className="stat-num" style={{ fontSize: 44, color: 'var(--accent)' }}>
+                      {prsThisMonth}
+                    </div>
+                    <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
+                      em breve
+                    </div>
+                  </Link>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* ════════ Semana strip ════════ */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.16 }}
+              className="card"
+              style={{ padding: 0 }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '20px 24px',
+                  borderBottom: '1px solid var(--hairline)',
+                }}
+              >
+                <h2 className="card-title">SEMANA · MINHA ROTINA</h2>
+                <Link to="/workouts" className="btn ghost">
+                  Ver tudo <Icon name="arrow" size={14} />
+                </Link>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                {WEEK_ORDER.map((day, i) => {
+                  const w = workouts.find((wk) => wk.week_days.includes(day))
+                  const isToday = day === todayKey
+                  const isRest = !w
+                  return (
+                    <div
+                      key={day}
+                      style={{
+                        padding: '18px 16px',
+                        borderRight: i < 6 ? '1px solid var(--hairline)' : 'none',
+                        background: isToday ? 'var(--bg-2)' : 'transparent',
+                        borderTop: isToday ? '3px solid var(--accent)' : '3px solid transparent',
+                        opacity: isRest ? 0.55 : 1,
+                        minHeight: 130,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4,
+                        cursor: w ? 'pointer' : 'default',
+                      }}
+                      onClick={() => w && navigate(`/workouts/${w.id}`)}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span
+                          className="label-sm"
+                          style={{ color: isToday ? 'var(--accent)' : 'var(--text-dim)' }}
+                        >
+                          {WEEK_DAY_SHORT[day]}
+                        </span>
+                        {isToday && (
+                          <span className="chip solid" style={{ padding: '2px 6px', fontSize: 9 }}>
+                            HOJE
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="f-display"
+                        style={{ fontSize: 22, lineHeight: 1, color: 'var(--text)' }}
+                      >
+                        {w ? w.name.toUpperCase() : 'DESCANSO'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+                        {w ? `${w.exercises?.length ?? 0} exercícios` : 'Folga'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+
+            {/* ════════ Bottom row: última sessão + atalhos ════════ */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20 }} className="forja-dash-bottom">
+              {/* Última sessão */}
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h2 className="card-title">ÚLTIMA SESSÃO</h2>
+                  <Link to="/historico" className="btn ghost">
+                    Ver tudo <Icon name="arrow" size={14} />
+                  </Link>
+                </div>
+                {lastSession ? (
+                  <Link
+                    to={`/historico/${lastSession.id}`}
+                    style={{
+                      display: 'block',
+                      textDecoration: 'none',
+                      marginTop: 18,
+                      padding: 16,
+                      background: 'var(--bg-2)',
+                      borderRadius: 'var(--r-2)',
+                      border: '1px solid var(--hairline)',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--hairline)')}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div
+                          className="f-display"
+                          style={{ fontSize: 28, lineHeight: 1, color: 'var(--text)' }}
+                        >
+                          {(lastSession as WorkoutLog & { workout?: { name: string } }).workout?.name?.toUpperCase() ?? 'TREINO'}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 6 }}>
+                          {new Date(lastSession.started_at).toLocaleDateString('pt-BR', {
+                            weekday: 'long',
+                            day: '2-digit',
+                            month: 'short',
+                          })}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div className="f-display" style={{ fontSize: 32, color: 'var(--accent)' }}>
+                          {lastSession.duration_minutes ?? '—'}
+                          <span className="stat-unit">min</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      color: 'var(--text-dim)',
+                      fontSize: 13,
+                      border: '1px dashed var(--border)',
+                      borderRadius: 'var(--r-2)',
+                    }}
+                  >
+                    Nenhuma sessão registrada ainda — comece pelo treino de hoje.
+                  </div>
+                )}
+              </div>
+
+              {/* Atalhos */}
+              <div className="card">
+                <h2 className="card-title">ATALHOS</h2>
+                <div className="col gap-3" style={{ marginTop: 18 }}>
+                  {[
+                    { to: '/historico', icon: 'history' as const, label: 'Histórico' },
+                    { to: '/progresso', icon: 'chart' as const, label: 'Progresso' },
+                    { to: '/medidas', icon: 'scale' as const, label: 'Peso & Medidas' },
+                    { to: '/perfil', icon: 'user' as const, label: 'Perfil' },
+                  ].map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        padding: '10px 12px',
+                        borderRadius: 'var(--r-2)',
+                        background: 'var(--bg-2)',
+                        textDecoration: 'none',
+                        color: 'var(--text)',
+                        fontSize: 13,
+                        fontWeight: 500,
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-3)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-2)')}
+                    >
+                      <div style={{ color: 'var(--accent)' }}>
+                        <Icon name={item.icon} size={16} />
+                      </div>
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      <Icon name="arrow" size={14} />
+                    </Link>
+                  ))}
+                </div>
+                <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-faint)' }}>
+                  Volume / semana: <strong style={{ color: 'var(--text-dim)' }}>{volumeWeek}</strong>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* CSS específico do Dashboard */}
+      <style>{`
+        .forja-dash-grid {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr;
+          gap: 20px;
+        }
+        .forja-dash-watermark {
+          position: absolute;
+          right: -40px;
+          top: -40px;
+          opacity: 0.06;
+          font-family: var(--f-display);
+          font-size: 380px;
+          line-height: 0.8;
+          color: #000;
+          pointer-events: none;
+        }
+        @media (max-width: 900px) {
+          .forja-dash-grid { grid-template-columns: 1fr; }
+          .forja-dash-bottom { grid-template-columns: 1fr !important; }
+          .forja-dash-watermark { font-size: 220px; }
+        }
+      `}</style>
+    </>
   )
 }
