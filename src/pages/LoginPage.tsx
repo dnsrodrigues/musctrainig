@@ -7,6 +7,7 @@ import { motion } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
 import { Icon } from '../components/ui/Icon'
 import { ThemeSwitcher } from '../components/ui/ThemeSwitcher'
+import { ShaderBackdrop } from '../components/ShaderBackdrop'
 
 // ─── Validação ────────────────────────────────────────────────────────────────
 
@@ -54,22 +55,11 @@ export function LoginPage() {
 
       {/* ════════════ LATERAL ARTE ════════════ */}
       <div className="forja-login-art">
-        {/* Gradiente animado de fundo */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: `
-              radial-gradient(circle at 30% 30%, var(--accent) 0%, transparent 35%),
-              radial-gradient(circle at 70% 70%, rgba(255,255,255,0.08) 0%, transparent 40%)
-            `,
-            opacity: 0.18,
-            mixBlendMode: 'screen',
-            animation: 'forjaBgShift 14s ease-in-out infinite alternate',
-          }}
-        />
 
-        {/* Vinheta */}
+        {/* Shader WebGL animado — ondas com aberracao cromatica tingidas pela accent */}
+        <ShaderBackdrop intensity={1.05} />
+
+        {/* Vinheta para legibilidade do texto sobre o shader */}
         <div
           style={{
             position: 'absolute',
