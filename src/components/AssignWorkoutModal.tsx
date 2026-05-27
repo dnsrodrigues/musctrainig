@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { Icon } from './ui/Icon'
+import { useModalA11y } from '../hooks/useModalA11y'
 import { supabase } from '../lib/supabase'
 import { assignTemplateToStudent } from '../services/workout.service'
 import { useAuth } from '../context/AuthContext'
@@ -68,16 +69,8 @@ export function AssignWorkoutModal({
     }
   }
 
-  // Fecha com Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
-
   const hasAssignedAny = assigned.size > 0
+  const { initialFocusRef } = useModalA11y(true, onClose)
 
   return (
     <>
@@ -92,20 +85,25 @@ export function AssignWorkoutModal({
       />
 
       {/* Modal */}
-      <div style={{
-        position: 'fixed',
-        top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 50,
-        width: 'min(440px, calc(100vw - 32px))',
-        maxHeight: 'calc(100vh - 80px)',
-        background: 'var(--bg-1)',
-        border: '1px solid var(--border)',
-        borderTop: '2px solid var(--accent)',
-        borderRadius: 4,
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-assign-title"
+        style={{
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 50,
+          width: 'min(440px, calc(100vw - 32px))',
+          maxHeight: 'calc(100vh - 80px)',
+          background: 'var(--bg-1)',
+          border: '1px solid var(--border)',
+          borderTop: '2px solid var(--accent)',
+          borderRadius: 4,
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
 
         {/* Header */}
         <div style={{
@@ -114,7 +112,7 @@ export function AssignWorkoutModal({
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div>
-            <div style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
+            <div id="modal-assign-title" style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
               Atribuir Ficha
             </div>
             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic' }}>
@@ -139,6 +137,7 @@ export function AssignWorkoutModal({
           }}>
             <Icon name="search" size={13} style={{ color: 'var(--text-faint)', opacity: 0.5, flexShrink: 0 }} />
             <input
+              ref={(el) => { initialFocusRef.current = el }}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

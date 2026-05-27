@@ -145,7 +145,7 @@ export function WorkoutCard({
           ) : (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {onEdit && (
-                <button onClick={onEdit} className="btn ghost" style={{ padding: '6px 12px', fontSize: 11 }}>
+                <button onClick={onEdit} className="btn ghost" style={{ padding: '6px 12px', fontSize: 11 }} aria-label="Editar ficha">
                   <Icon name="edit" size={12} /> Editar
                 </button>
               )}
@@ -160,6 +160,7 @@ export function WorkoutCard({
                     borderColor: 'var(--accent)',
                     background: 'transparent',
                   }}
+                  aria-label="Atribuir a aluno"
                 >
                   <Icon name="user" size={12} /> Atribuir
                 </button>
@@ -169,6 +170,7 @@ export function WorkoutCard({
                   onClick={() => setConfirmDelete(true)}
                   className="btn danger"
                   style={{ padding: '6px 12px', fontSize: 11, marginLeft: 'auto' }}
+                  aria-label="Excluir ficha"
                 >
                   {deleteLabel}
                 </button>

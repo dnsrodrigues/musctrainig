@@ -12,6 +12,7 @@ import {
 import { getLastSetData, type LastSetRecord } from '../services/history.service'
 import { Icon } from '../components/ui/Icon'
 import { WorkoutFinishModal } from '../components/WorkoutFinishModal'
+import { useModalA11y } from '../hooks/useModalA11y'
 import { MUSCLE_GROUP_LABELS } from '../types'
 import type { Workout, WorkoutExercise } from '../types'
 
@@ -77,6 +78,7 @@ export function WorkoutSessionPage() {
   const [isFinishing, setIsFinishing] = useState(false)
   const [exitChoice, setExitChoice] = useState<'discard' | 'save' | null>(null)
   const [isExiting, setIsExiting] = useState(false)
+  const { initialFocusRef: exitModalFocusRef } = useModalA11y(showExitModal, () => setShowExitModal(false))
 
   // ─────────────────────────────────────────────────────────────────
   // Boot — carrega ficha e cria workout_log
@@ -312,7 +314,7 @@ export function WorkoutSessionPage() {
           <button
             className="btn ghost"
             onClick={() => setLayout((l) => (l === 'A' ? 'B' : 'A'))}
-            title="Trocar layout"
+            aria-label={`Trocar para layout ${layout === 'A' ? 'B' : 'A'}`}
             style={
               layout === 'B'
                 ? { background: 'transparent', color: '#0a0a0a', borderColor: 'rgba(0,0,0,0.3)' }
@@ -324,6 +326,7 @@ export function WorkoutSessionPage() {
           <button
             className="btn"
             onClick={() => setShowExitModal(true)}
+            aria-label="Sair do treino"
             style={
               layout === 'B'
                 ? { background: '#0a0a0a', color: 'var(--accent)', borderColor: '#0a0a0a' }
@@ -335,6 +338,7 @@ export function WorkoutSessionPage() {
           <button
             className="btn primary"
             onClick={() => { skipTimer(); setShowFinishModal(true) }}
+            aria-label="Encerrar treino"
             style={
               layout === 'B'
                 ? { background: 'rgba(0,0,0,0.85)', color: 'var(--text)', borderColor: 'rgba(0,0,0,0.85)' }
@@ -417,11 +421,14 @@ export function WorkoutSessionPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-exit-title"
               className="card"
               style={{ maxWidth: 420, width: '100%' }}
             >
               <div className="eyebrow">SAIR DO TREINO?</div>
-              <h2 className="f-display" style={{ fontSize: 32, margin: '8px 0 16px', color: 'var(--text)' }}>
+              <h2 id="modal-exit-title" className="f-display" style={{ fontSize: 32, margin: '8px 0 16px', color: 'var(--text)' }}>
                 COMO QUER SAIR?
               </h2>
               <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 20 }}>
@@ -429,6 +436,7 @@ export function WorkoutSessionPage() {
               </div>
               <div className="col gap-3">
                 <button
+                  ref={(el) => { exitModalFocusRef.current = el }}
                   className="btn primary"
                   onClick={() => handleExit('save')}
                   disabled={isExiting}

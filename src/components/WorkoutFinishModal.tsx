@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Icon } from './ui/Icon'
+import { useModalA11y } from '../hooks/useModalA11y'
 import type { WorkoutDifficulty } from '../types'
 
 interface WorkoutFinishModalProps {
@@ -31,6 +32,7 @@ export function WorkoutFinishModal({
 }: WorkoutFinishModalProps) {
   const [difficulty, setDifficulty] = useState<WorkoutDifficulty | null>(null)
   const [notes, setNotes] = useState('')
+  const { initialFocusRef } = useModalA11y(isOpen, onClose)
 
   function handleConfirm() {
     if (!difficulty) return
@@ -62,6 +64,9 @@ export function WorkoutFinishModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-finish-title"
             style={{
               position: 'fixed',
               bottom: 0,
@@ -96,14 +101,17 @@ export function WorkoutFinishModal({
             }}>
               // treino concluído
             </div>
-            <div style={{
-              fontFamily: "var(--f-display)",
-              fontWeight: 800,
-              fontSize: 24,
-              color: 'var(--text)',
-              letterSpacing: '-0.02em',
-              marginBottom: 20,
-            }}>
+            <div
+              id="modal-finish-title"
+              style={{
+                fontFamily: "var(--f-display)",
+                fontWeight: 800,
+                fontSize: 24,
+                color: 'var(--text)',
+                letterSpacing: '-0.02em',
+                marginBottom: 20,
+              }}
+            >
               Que sessão! 💪
             </div>
 
@@ -210,6 +218,7 @@ export function WorkoutFinishModal({
               // observações (opcional)
             </div>
             <textarea
+              ref={(el) => { initialFocusRef.current = el }}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="// como foi? aumentei a carga, senti dor em..."

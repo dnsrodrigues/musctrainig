@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import { Icon } from './ui/Icon'
+import { useModalA11y } from '../hooks/useModalA11y'
 import type { Exercise, MuscleGroup } from '../types'
 import { MUSCLE_GROUP_LABELS } from '../types'
 import { getExercises, createExercise } from '../services/workout.service'
@@ -55,7 +56,7 @@ export function ExerciseSelector({
       })
       .finally(() => setLoading(false))
 
-    setTimeout(() => searchRef.current?.focus(), 100)
+    // foco gerenciado pelo useModalA11y via initialFocusRef
   }, [isOpen])
 
   // ── Filtra em tempo real ──
@@ -69,18 +70,11 @@ export function ExerciseSelector({
     setFiltered(result)
   }, [search, muscleFilter, exercises, excludeIds])
 
-  // ── Fecha com Escape ──
-  useEffect(() => {
-    if (!isOpen) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (view === 'create') setView('search')
-        else onClose()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [isOpen, onClose, view])
+  // ── Fecha com Escape (via useModalA11y) + foco inicial ──
+  const { initialFocusRef } = useModalA11y(isOpen, () => {
+    if (view === 'create') setView('search')
+    else onClose()
+  })
 
   // ── Abre modo criação pré-preenchido com o termo buscado ──
   function openCreate() {
@@ -142,6 +136,9 @@ export function ExerciseSelector({
 
       {/* Modal */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-exsel-title"
         style={{
           position: 'fixed',
           top: '50%', left: '50%',
@@ -169,7 +166,7 @@ export function ExerciseSelector({
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div>
-                <div style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
+                <div id="modal-exsel-title" style={{ fontFamily: "var(--f-display)", fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
                   Adicionar Exercício
                 </div>
                 <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic' }}>
@@ -191,7 +188,10 @@ export function ExerciseSelector({
               }}>
                 <Icon name="search" size={13} style={{ color: 'var(--text-faint)', opacity: 0.5, flexShrink: 0 }} />
                 <input
-                  ref={searchRef}
+                  ref={(el: HTMLInputElement | null) => {
+                    searchRef.current = el
+                    initialFocusRef.current = el
+                  }}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

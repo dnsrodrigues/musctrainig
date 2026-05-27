@@ -14,8 +14,11 @@ import { MobileTabbar } from './MobileTabbar'
 export function AppShell() {
   return (
     <div className="scr">
+      <a href="#main-content" className="forja-skip-link">
+        Pular para o conteúdo principal
+      </a>
       <Sidebar />
-      <div className="main">
+      <div id="main-content" className="main">
         <Outlet />
       </div>
       <MobileTabbar />

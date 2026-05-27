@@ -1,5 +1,6 @@
-﻿import { useState } from 'react'
+﻿import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useModalA11y } from '../hooks/useModalA11y'
 import type { BodyMeasurement } from '../types'
 
 interface Props {
@@ -27,6 +28,8 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
   const [date, setDate] = useState(today)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const firstFieldRef = useRef<HTMLInputElement | null>(null)
+  const { initialFocusRef } = useModalA11y(isOpen, onClose)
 
   const filledCount = FIELDS.filter((f) => {
     const v = fields[f.key]
@@ -86,6 +89,9 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-measure-title"
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
               background: 'var(--bg-1)',
@@ -112,10 +118,13 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
             }}>
               // nova medição
             </div>
-            <div style={{
-              fontFamily: "var(--f-display)", fontWeight: 800,
-              fontSize: 20, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 6,
-            }}>
+            <div
+              id="modal-measure-title"
+              style={{
+                fontFamily: "var(--f-display)", fontWeight: 800,
+                fontSize: 20, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 6,
+              }}
+            >
               Medidas Corporais
             </div>
             <div style={{
@@ -132,7 +141,7 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
               gap: 10,
               marginBottom: 16,
             }}>
-              {FIELDS.map((f) => (
+              {FIELDS.map((f, idx) => (
                 <div key={f.key}>
                   <div style={{
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 8,
@@ -142,6 +151,10 @@ export function MeasurementEntryModal({ isOpen, onClose, onSaved, onSave }: Prop
                     {f.label} (cm)
                   </div>
                   <input
+                    ref={idx === 0 ? (el) => {
+                      firstFieldRef.current = el
+                      initialFocusRef.current = el
+                    } : undefined}
                     type="number"
                     inputMode="decimal"
                     step="0.1"

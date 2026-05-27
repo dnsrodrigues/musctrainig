@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { useModalA11y } from '../hooks/useModalA11y'
 import type { UserWeight } from '../types'
 
 interface Props {
@@ -16,6 +17,7 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
   const [date, setDate] = useState(today)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { initialFocusRef } = useModalA11y(isOpen, onClose)
 
   const weightNum = parseFloat(weightStr.replace(',', '.'))
   const canSave = !isNaN(weightNum) && weightNum > 0 && weightNum < 400
@@ -56,6 +58,9 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-weight-title"
             style={{
               position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 51,
               background: 'var(--bg-1)',
@@ -80,10 +85,13 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
             }}>
               // registrar peso
             </div>
-            <div style={{
-              fontFamily: "var(--f-display)", fontWeight: 800,
-              fontSize: 22, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 24,
-            }}>
+            <div
+              id="modal-weight-title"
+              style={{
+                fontFamily: "var(--f-display)", fontWeight: 800,
+                fontSize: 22, color: 'var(--text)', letterSpacing: '-0.02em', marginBottom: 24,
+              }}
+            >
               Quanto você pesa hoje?
             </div>
 
@@ -98,6 +106,7 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input
+                  ref={(el) => { initialFocusRef.current = el }}
                   type="number"
                   inputMode="decimal"
                   step="0.1"
@@ -106,7 +115,6 @@ export function WeightEntryModal({ isOpen, lastWeight, onClose, onSaved, onSave 
                   value={weightStr}
                   onChange={(e) => setWeightStr(e.target.value)}
                   placeholder="82.5"
-                  autoFocus
                   style={{
                     flex: 1,
                     background: 'var(--bg-2)',
