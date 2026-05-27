@@ -279,7 +279,7 @@ export function WorkoutsAdminPage() {
       {/* Modal de atribuir */}
       {assignTarget && (
         <AssignWorkoutModal
-          template={assignTarget}
+          workout={assignTarget}
           onClose={() => setAssignTarget(null)}
           onAssigned={() => {
             setAssignTarget(null)

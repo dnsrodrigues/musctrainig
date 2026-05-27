@@ -4,14 +4,25 @@ import { Icon } from './ui/Icon'
 import { useModalA11y } from '../hooks/useModalA11y'
 import type { WorkoutDifficulty } from '../types'
 
-interface WorkoutFinishModalProps {
-  isOpen: boolean
-  durationMinutes: number
+interface SessionStats {
+  exercisesDone?: number
   totalExercises: number
   totalSets: number
+  durationMinutes: number
+}
+
+interface WorkoutFinishModalProps {
+  isOpen: boolean
+  /** Props legadas (compatibilidade) */
+  durationMinutes?: number
+  totalExercises?: number
+  totalSets?: number
+  isLoading?: boolean
+  /** Props novas (preferir estas) */
+  sessionStats?: SessionStats
+  isSubmitting?: boolean
   onConfirm: (data: { difficulty: WorkoutDifficulty; notes: string }) => void
   onClose: () => void
-  isLoading: boolean
 }
 
 const DIFFICULTIES: { key: WorkoutDifficulty; emoji: string; label: string }[] = [
@@ -23,13 +34,20 @@ const DIFFICULTIES: { key: WorkoutDifficulty; emoji: string; label: string }[] =
 
 export function WorkoutFinishModal({
   isOpen,
-  durationMinutes,
-  totalExercises,
-  totalSets,
+  durationMinutes: durationMinutesProp,
+  totalExercises: totalExercisesProp,
+  totalSets: totalSetsProp,
+  sessionStats,
   onConfirm,
   onClose,
   isLoading,
+  isSubmitting,
 }: WorkoutFinishModalProps) {
+  // Suporta props individuais (legado) ou sessionStats (novo)
+  const durationMinutes = sessionStats?.durationMinutes ?? durationMinutesProp ?? 0
+  const totalExercises  = sessionStats?.totalExercises  ?? totalExercisesProp  ?? 0
+  const totalSets       = sessionStats?.totalSets       ?? totalSetsProp       ?? 0
+  const isSaving        = isSubmitting ?? isLoading ?? false
   const [difficulty, setDifficulty] = useState<WorkoutDifficulty | null>(null)
   const [notes, setNotes] = useState('')
   const { initialFocusRef } = useModalA11y(isOpen, onClose)
@@ -244,7 +262,7 @@ export function WorkoutFinishModal({
             {/* Botão confirmar */}
             <button
               onClick={handleConfirm}
-              disabled={!difficulty || isLoading}
+              disabled={!difficulty || isSaving}
               style={{
                 width: '100%',
                 background: difficulty ? 'var(--accent)' : 'var(--surface-3)',
@@ -257,12 +275,12 @@ export function WorkoutFinishModal({
                 color: difficulty ? '#05050a' : 'var(--text-faint)',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
-                cursor: difficulty && !isLoading ? 'pointer' : 'not-allowed',
+                cursor: difficulty && !isSaving ? 'pointer' : 'not-allowed',
                 transition: 'all 0.15s',
-                opacity: isLoading ? 0.7 : 1,
+                opacity: isSaving ? 0.7 : 1,
               }}
             >
-              {isLoading ? '// salvando...' : 'Salvar Treino →'}
+              {isSaving ? '// salvando...' : 'Salvar Treino →'}
             </button>
           </motion.div>
         </>

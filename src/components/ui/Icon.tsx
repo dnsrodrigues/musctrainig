@@ -133,7 +133,7 @@ const PATHS: Record<IconName, ReactNode> = {
   hash: <path d="M9 4l-2 16M17 4l-2 16M4 9h16M3 15h16" />,
 }
 
-interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
+interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name' | 'stroke'> {
   name: IconName
   size?: number
   stroke?: number

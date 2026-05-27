@@ -751,7 +751,7 @@ function LayoutB(props: LayoutBProps) {
   const {
     currentIdx, exercises, currentExercise,
     setsCompleted, lastSetData, onSetComplete,
-    timerSeconds, isTimerRunning, onAdjustTimer, onSkipTimer,
+    timerSeconds, onAdjustTimer, onSkipTimer,
   } = props
 
   const ex = currentExercise
