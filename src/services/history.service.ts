@@ -181,6 +181,220 @@ export async function getWeeklyFrequency(userId: string): Promise<WeekFrequency[
 }
 
 // ─────────────────────────────────────────────
+// Métricas do Dashboard
+// ─────────────────────────────────────────────
+
+/** Converte Date → 'YYYY-MM-DD' no timezone local */
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Streak de dias consecutivos com pelo menos 1 sessão finalizada.
+ * - Granularidade: dia (timezone do navegador)
+ * - Grace period: se hoje não tem treino mas ontem tem, conta a partir de ontem
+ */
+export async function getCurrentStreak(userId: string): Promise<{ current: number; longest: number }> {
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('started_at')
+    .eq('user_id', userId)
+    .not('finished_at', 'is', null)
+    .order('started_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  if (!data || data.length === 0) return { current: 0, longest: 0 }
+
+  // Set de chaves YYYY-MM-DD (timezone local)
+  const dayKeys = new Set<string>()
+  for (const row of data as { started_at: string }[]) {
+    dayKeys.add(toDateKey(new Date(row.started_at)))
+  }
+
+  // current streak — começa hoje; se hoje sem treino, tenta ontem (grace period)
+  let current = 0
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const startFrom = dayKeys.has(toDateKey(today))
+    ? today
+    : dayKeys.has(toDateKey(yesterday))
+      ? yesterday
+      : null
+
+  if (startFrom) {
+    for (let i = 0; ; i++) {
+      const d = new Date(startFrom)
+      d.setDate(startFrom.getDate() - i)
+      if (dayKeys.has(toDateKey(d))) current++
+      else break
+    }
+  }
+
+  // longest streak — percorre todas as chaves em ordem crescente
+  const sorted = Array.from(dayKeys).sort()
+  let longest = 0
+  let run = 1
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1])
+    const curr = new Date(sorted[i])
+    const diffDays = Math.round((curr.getTime() - prev.getTime()) / 86400000)
+    if (diffDays === 1) {
+      run++
+    } else {
+      longest = Math.max(longest, run)
+      run = 1
+    }
+  }
+  longest = Math.max(longest, run)
+
+  return { current, longest }
+}
+
+/**
+ * Número de PRs (personal records) no mês corrente.
+ * PR = exercício em que a maior carga do mês supera a maior carga de todos os meses anteriores.
+ * Primeira aparição no mês conta como PR (max anterior = 0).
+ */
+export async function getPersonalRecordsThisMonth(userId: string): Promise<number> {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, -1)
+
+  // Todas as sessões concluídas do usuário
+  const { data: logs, error: logsError } = await supabase
+    .from('workout_logs')
+    .select('id, started_at')
+    .eq('user_id', userId)
+    .not('finished_at', 'is', null)
+
+  if (logsError) throw new Error(logsError.message)
+  if (!logs || logs.length === 0) return 0
+
+  const logDateMap: Record<string, Date> = {}
+  const logIds: string[] = []
+  for (const l of logs as { id: string; started_at: string }[]) {
+    logIds.push(l.id)
+    logDateMap[l.id] = new Date(l.started_at)
+  }
+
+  // exercise_logs com carga para essas sessões
+  const { data: sets, error: setsError } = await supabase
+    .from('exercise_logs')
+    .select('exercise_id, load_kg, workout_log_id')
+    .in('workout_log_id', logIds)
+    .not('load_kg', 'is', null)
+
+  if (setsError) throw new Error(setsError.message)
+  if (!sets || sets.length === 0) return 0
+
+  // Separa max antes do mês vs max neste mês por exercício
+  const maxBefore: Record<string, number> = {}
+  const maxThisMonth: Record<string, number> = {}
+
+  for (const row of sets as { exercise_id: string; load_kg: number; workout_log_id: string }[]) {
+    const sessionDate = logDateMap[row.workout_log_id]
+    if (!sessionDate) continue
+    const load = row.load_kg
+    const exId = row.exercise_id
+
+    if (sessionDate >= monthStart && sessionDate <= monthEnd) {
+      maxThisMonth[exId] = Math.max(maxThisMonth[exId] ?? 0, load)
+    } else if (sessionDate < monthStart) {
+      maxBefore[exId] = Math.max(maxBefore[exId] ?? 0, load)
+    }
+  }
+
+  // Conta exercícios onde max deste mês > max anterior (0 se nunca feito antes)
+  let count = 0
+  for (const [exId, thisMonthMax] of Object.entries(maxThisMonth)) {
+    if (thisMonthMax > (maxBefore[exId] ?? 0)) count++
+  }
+
+  return count
+}
+
+/**
+ * Volume total (kg) desta semana e da semana anterior.
+ * Volume = Σ(reps_completed × load_kg). Ignora séries sem carga (peso corporal).
+ * Semana começa na segunda-feira.
+ */
+export async function getVolumeLastWeek(userId: string): Promise<{ thisWeek: number; lastWeek: number }> {
+  const now = new Date()
+  const dayOfWeek = now.getDay() // 0=dom, 1=seg…
+  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const thisWeekStart = new Date(now)
+  thisWeekStart.setDate(now.getDate() + daysToMonday)
+  thisWeekStart.setHours(0, 0, 0, 0)
+
+  const lastWeekStart = new Date(thisWeekStart)
+  lastWeekStart.setDate(thisWeekStart.getDate() - 7)
+  const lastWeekEnd = new Date(thisWeekStart.getTime() - 1)
+
+  // Sessões concluídas nas últimas 2 semanas
+  const { data: logs, error: logsError } = await supabase
+    .from('workout_logs')
+    .select('id, started_at')
+    .eq('user_id', userId)
+    .not('finished_at', 'is', null)
+    .gte('started_at', lastWeekStart.toISOString())
+
+  if (logsError) throw new Error(logsError.message)
+  if (!logs || logs.length === 0) return { thisWeek: 0, lastWeek: 0 }
+
+  const logDateMap: Record<string, Date> = {}
+  const logIds: string[] = []
+  for (const l of logs as { id: string; started_at: string }[]) {
+    logIds.push(l.id)
+    logDateMap[l.id] = new Date(l.started_at)
+  }
+
+  // exercise_logs com reps + carga
+  const { data: sets, error: setsError } = await supabase
+    .from('exercise_logs')
+    .select('reps_completed, load_kg, workout_log_id')
+    .in('workout_log_id', logIds)
+    .not('load_kg', 'is', null)
+
+  if (setsError) throw new Error(setsError.message)
+
+  let thisWeek = 0
+  let lastWeek = 0
+
+  for (const row of (sets ?? []) as { reps_completed: number; load_kg: number; workout_log_id: string }[]) {
+    const sessionDate = logDateMap[row.workout_log_id]
+    if (!sessionDate) continue
+    const vol = (row.reps_completed ?? 0) * (row.load_kg ?? 0)
+
+    if (sessionDate >= thisWeekStart) thisWeek += vol
+    else if (sessionDate >= lastWeekStart && sessionDate <= lastWeekEnd) lastWeek += vol
+  }
+
+  return { thisWeek: Math.round(thisWeek), lastWeek: Math.round(lastWeek) }
+}
+
+/**
+ * Tempo médio das últimas 10 sessões com duração registrada.
+ * Retorna null se houver menos de 3 sessões com dados.
+ */
+export async function getAverageSessionDuration(userId: string): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('workout_logs')
+    .select('duration_minutes')
+    .eq('user_id', userId)
+    .not('finished_at', 'is', null)
+    .not('duration_minutes', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(10)
+
+  if (error) throw new Error(error.message)
+  if (!data || data.length < 3) return null
+
+  const total = (data as { duration_minutes: number }[]).reduce((sum, r) => sum + r.duration_minutes, 0)
+  return Math.round(total / data.length)
+}
+
+// ─────────────────────────────────────────────
 // Pré-preenchimento de sessão
 // ─────────────────────────────────────────────
 

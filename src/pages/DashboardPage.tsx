@@ -4,10 +4,15 @@ import { motion } from 'motion/react'
 import { useAuth } from '../context/AuthContext'
 import { Topbar } from '../components/layout/Topbar'
 import { Icon } from '../components/ui/Icon'
-import { getWorkoutHistory } from '../services/history.service'
+import {
+  getWorkoutHistory,
+  getCurrentStreak,
+  getPersonalRecordsThisMonth,
+  getVolumeLastWeek,
+  getAverageSessionDuration,
+} from '../services/history.service'
 import { getMyWorkouts } from '../services/workout.service'
-import { getUserWeights } from '../services/measurements.service'
-import type { Workout, WeekDay, WorkoutLog, UserWeight } from '../types'
+import type { Workout, WeekDay, WorkoutLog } from '../types'
 import { WEEK_DAY_SHORT, MUSCLE_GROUP_LABELS } from '../types'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -45,7 +50,10 @@ export function DashboardPage() {
 
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [history, setHistory] = useState<WorkoutLog[]>([])
-  const [lastWeight, setLastWeight] = useState<UserWeight | null>(null)
+  const [streak, setStreak] = useState({ current: 0, longest: 0 })
+  const [prsThisMonthCount, setPrsThisMonthCount] = useState(0)
+  const [volumeData, setVolumeData] = useState({ thisWeek: 0, lastWeek: 0 })
+  const [avgDuration, setAvgDuration] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const firstName = (profile?.full_name ?? 'Atleta').split(' ')[0]
@@ -57,12 +65,18 @@ export function DashboardPage() {
     Promise.all([
       isAdmin ? Promise.resolve([] as Workout[]) : getMyWorkouts(profile.id),
       isAdmin ? Promise.resolve([] as WorkoutLog[]) : getWorkoutHistory(profile.id),
-      isAdmin ? Promise.resolve([] as UserWeight[]) : getUserWeights(profile.id),
+      isAdmin ? Promise.resolve({ current: 0, longest: 0 }) : getCurrentStreak(profile.id),
+      isAdmin ? Promise.resolve(0) : getPersonalRecordsThisMonth(profile.id),
+      isAdmin ? Promise.resolve({ thisWeek: 0, lastWeek: 0 }) : getVolumeLastWeek(profile.id),
+      isAdmin ? Promise.resolve(null as number | null) : getAverageSessionDuration(profile.id),
     ])
-      .then(([w, h, weights]) => {
+      .then(([w, h, str, prs, vol, avgDur]) => {
         setWorkouts(w)
         setHistory(h)
-        setLastWeight(weights[0] ?? null)
+        setStreak(str)
+        setPrsThisMonthCount(prs)
+        setVolumeData(vol)
+        setAvgDuration(avgDur)
       })
       .finally(() => setLoading(false))
   }, [profile?.id, isAdmin])
@@ -70,14 +84,16 @@ export function DashboardPage() {
   const todayWorkout = workouts.find((w) => w.week_days.includes(todayKey))
 
   // Stats
-  const workoutCount = history.length
   const lastSession = history[0]
 
-  // PRs no mês (placeholder — futuro: calcular do exercise_logs)
-  const prsThisMonth = '—'
-
-  // Volume estimado (placeholder)
-  const volumeWeek = '—'
+  // Volume — formata kg/t e calcula delta vs semana anterior
+  function formatVolume(kg: number) {
+    if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`
+    return `${kg}kg`
+  }
+  const volumeDelta = volumeData.lastWeek > 0
+    ? Math.round(((volumeData.thisWeek - volumeData.lastWeek) / volumeData.lastWeek) * 100)
+    : null
 
   return (
     <>
@@ -177,6 +193,17 @@ export function DashboardPage() {
                             {(todayWorkout.exercises ?? []).reduce((sum, e) => sum + (e.sets ?? 0), 0)}
                           </div>
                         </div>
+                        {avgDuration !== null && (
+                          <>
+                            <div style={{ width: 1, height: 40, background: 'rgba(0,0,0,0.2)' }} />
+                            <div>
+                              <div style={{ fontSize: 10, color: 'rgba(0,0,0,0.55)', letterSpacing: '0.15em' }}>TEMPO MÉDIO</div>
+                              <div className="f-display" style={{ fontSize: 36 }}>
+                                ~{avgDuration}<span style={{ fontSize: 16, fontFamily: 'var(--f-body)', fontWeight: 400, marginLeft: 2 }}>min</span>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: 10, marginTop: 28, flexWrap: 'wrap' }}>
                         <button
@@ -221,27 +248,25 @@ export function DashboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.08 }}
                   className="card"
-                  style={{ display: 'flex', alignItems: 'flex-end', gap: 18, minHeight: 120 }}
+                  style={{ minHeight: 120 }}
                 >
-                  <div>
-                    <div className="stat-label">Treinos</div>
-                    <div className="stat-num">
-                      {loading ? '…' : workoutCount}
-                      <span className="stat-unit">total</span>
-                    </div>
+                  <div className="stat-label">STREAK</div>
+                  <div
+                    className="stat-num"
+                    style={{
+                      fontSize: 52,
+                      color: streak.current >= 7
+                        ? 'var(--accent)'
+                        : streak.current === 0
+                          ? 'var(--text-dim)'
+                          : 'var(--text)',
+                    }}
+                  >
+                    {loading ? '…' : streak.current}
+                    <span className="stat-unit">dias</span>
                   </div>
-                  <div style={{ flex: 1, display: 'flex', gap: 3, alignItems: 'flex-end', paddingBottom: 6 }}>
-                    {[40, 55, 30, 70, 65, 80, 90, 50, 75, 85, 60, 95].map((h, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          flex: 1,
-                          height: h * 0.6,
-                          background: i > 8 ? 'var(--accent)' : 'var(--bg-3)',
-                          borderRadius: 2,
-                        }}
-                      />
-                    ))}
+                  <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
+                    máx: {loading ? '…' : streak.longest} dias
                   </div>
                 </motion.div>
 
@@ -251,23 +276,39 @@ export function DashboardPage() {
                   transition={{ duration: 0.5, delay: 0.12 }}
                   style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
                 >
-                  <Link to="/medidas" className="card" style={{ textDecoration: 'none' }}>
-                    <div className="stat-label">Peso atual</div>
-                    <div className="stat-num" style={{ fontSize: 44 }}>
-                      {lastWeight ? Number(lastWeight.weight_kg).toFixed(1) : '—'}
-                      <span className="stat-unit">kg</span>
+                  <div className="card">
+                    <div className="stat-label">VOLUME SEM</div>
+                    <div className="stat-num" style={{ fontSize: 38 }}>
+                      {loading ? '…' : formatVolume(volumeData.thisWeek)}
                     </div>
-                    <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
-                      {lastWeight ? 'registre nova medição' : 'registre seu peso'}
-                    </div>
-                  </Link>
+                    {!loading && volumeDelta !== null ? (
+                      <div style={{
+                        fontSize: 11,
+                        marginTop: 4,
+                        fontWeight: 600,
+                        color: volumeDelta > 0 ? 'var(--success)' : volumeDelta < 0 ? 'var(--danger)' : 'var(--text-dim)',
+                      }}>
+                        {volumeDelta > 0 ? '↑' : '↓'} {Math.abs(volumeDelta)}% vs sem. ant.
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
+                        esta semana
+                      </div>
+                    )}
+                  </div>
                   <Link to="/progresso" className="card" style={{ textDecoration: 'none' }}>
-                    <div className="stat-label">PRs no mês</div>
-                    <div className="stat-num" style={{ fontSize: 44, color: 'var(--accent)' }}>
-                      {prsThisMonth}
+                    <div className="stat-label">PRs NO MÊS</div>
+                    <div
+                      className="stat-num"
+                      style={{
+                        fontSize: 44,
+                        color: prsThisMonthCount > 0 ? 'var(--accent)' : 'var(--text)',
+                      }}
+                    >
+                      {loading ? '…' : String(prsThisMonthCount).padStart(2, '0')}
                     </div>
                     <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>
-                      em breve
+                      este mês
                     </div>
                   </Link>
                 </motion.div>
@@ -449,9 +490,6 @@ export function DashboardPage() {
                       <Icon name="arrow" size={14} />
                     </Link>
                   ))}
-                </div>
-                <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-faint)' }}>
-                  Volume / semana: <strong style={{ color: 'var(--text-dim)' }}>{volumeWeek}</strong>
                 </div>
               </div>
             </div>
