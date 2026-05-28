@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getTrainers, getTrainerStudents, deactivateTrainer, activateProfile } from '../../services/trainer.service'
+import { useAuth } from '../../context/AuthContext'
+import { getAllStudents, getTrainerStudents, deactivateStudent, activateProfile } from '../../services/trainer.service'
 import { supabase } from '../../lib/supabase'
 import { Topbar } from '../../components/layout/Topbar'
 import { Icon } from '../../components/ui/Icon'
@@ -15,87 +16,81 @@ interface ModalState {
   onConfirm: () => void
 }
 
-export function TrainersAdminPage() {
+export function StudentsAdminPage() {
   const navigate = useNavigate()
-  const [trainers, setTrainers] = useState<UserProfile[]>([])
-  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
+  const { profile, isSuperAdmin } = useAuth()
+  const [students, setStudents] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
 
-  useEffect(() => { void loadTrainers() }, [])
+  useEffect(() => { void load() }, [])
 
-  async function loadTrainers() {
+  async function load() {
     setLoading(true)
     setError(null)
     try {
-      const data = await getTrainers()
-      setTrainers(data)
-      const counts: Record<string, number> = {}
-      await Promise.all(
-        data.map(async (t) => {
-          const students = await getTrainerStudents(t.id)
-          counts[t.id] = students.length
-        })
-      )
-      setStudentCounts(counts)
+      const data = isSuperAdmin
+        ? await getAllStudents()
+        : await getTrainerStudents(profile!.id)
+      setStudents(data)
     } catch {
-      setError('Erro ao carregar trainers')
+      setError('Erro ao carregar alunos')
     } finally {
       setLoading(false)
     }
   }
 
-  function handleDeactivate(trainerId: string) {
+  function handleDeactivate(studentId: string) {
     setModal({
-      title: 'Desativar trainer',
-      message: 'O trainer perderá acesso ao sistema. Os alunos vinculados ficarão sem trainer atribuído.',
+      title: 'Desativar aluno',
+      message: 'O aluno perderá acesso ao sistema. Você poderá reativá-lo quando quiser.',
       confirmLabel: 'Desativar',
       danger: true,
       onConfirm: async () => {
         setModal(null)
         try {
-          await deactivateTrainer(trainerId)
-          setTrainers((prev) => prev.map((t) => t.id === trainerId ? { ...t, is_active: false } : t))
+          await deactivateStudent(studentId)
+          setStudents((prev) => prev.map((s) => s.id === studentId ? { ...s, is_active: false } : s))
         } catch {
-          setError('Erro ao desativar trainer')
+          setError('Erro ao desativar aluno')
         }
       },
     })
   }
 
-  async function handleActivate(trainerId: string) {
+  async function handleActivate(studentId: string) {
     try {
-      await activateProfile(trainerId)
-      setTrainers((prev) => prev.map((t) => t.id === trainerId ? { ...t, is_active: true } : t))
+      await activateProfile(studentId)
+      setStudents((prev) => prev.map((s) => s.id === studentId ? { ...s, is_active: true } : s))
     } catch {
-      setError('Erro ao reativar trainer')
+      setError('Erro ao reativar aluno')
     }
   }
 
-  function handleDelete(trainerId: string) {
+  function handleDelete(studentId: string) {
     setModal({
-      title: 'Excluir trainer',
-      message: 'Esta ação é permanente e não pode ser desfeita. O trainer será removido do sistema.',
+      title: 'Excluir aluno',
+      message: 'Esta ação é permanente e não pode ser desfeita. O aluno será removido do sistema.',
       confirmLabel: 'Excluir',
       danger: true,
       onConfirm: async () => {
         setModal(null)
         try {
           const { error } = await supabase.functions.invoke('manage-users', {
-            body: { action: 'delete', userId: trainerId },
+            body: { action: 'delete', userId: studentId },
           })
           if (error) throw error
-          setTrainers((prev) => prev.filter((t) => t.id !== trainerId))
+          setStudents((prev) => prev.filter((s) => s.id !== studentId))
         } catch {
-          setError('Erro ao excluir trainer')
+          setError('Erro ao excluir aluno')
         }
       },
     })
   }
 
-  const active = trainers.filter((t) => t.is_active)
-  const inactive = trainers.filter((t) => !t.is_active)
+  const active = students.filter((s) => s.is_active)
+  const inactive = students.filter((s) => !s.is_active)
 
   return (
     <>
@@ -110,11 +105,11 @@ export function TrainersAdminPage() {
         />
       )}
       <Topbar
-        eyebrow="GESTÃO"
-        title="TRAINERS"
+        eyebrow={isSuperAdmin ? 'GESTÃO' : 'MEUS ALUNOS'}
+        title="ALUNOS"
         actions={
-          <button onClick={() => navigate('/admin/trainers/new')} className="btn primary">
-            <Icon name="plus" size={14} /> Novo Trainer
+          <button onClick={() => navigate('/admin/students/new')} className="btn primary">
+            <Icon name="plus" size={14} /> Novo Aluno
           </button>
         }
       />
@@ -136,21 +131,20 @@ export function TrainersAdminPage() {
 
         {!loading && !error && (
           <>
-            {trainers.length === 0 && (
+            {students.length === 0 && (
               <div className="card" style={{ textAlign: 'center', padding: '32px 24px', borderStyle: 'dashed', color: 'var(--text-dim)' }}>
-                Nenhum trainer cadastrado ainda.
+                Nenhum aluno cadastrado ainda.
               </div>
             )}
 
             {active.length > 0 && (
               <div className="col gap-2">
-                {active.map((trainer) => (
-                  <TrainerRow
-                    key={trainer.id}
-                    trainer={trainer}
-                    studentCount={studentCounts[trainer.id] ?? 0}
-                    onDeactivate={() => handleDeactivate(trainer.id)}
-                    onDelete={() => handleDelete(trainer.id)}
+                {active.map((student) => (
+                  <StudentRow
+                    key={student.id}
+                    student={student}
+                    onDeactivate={() => handleDeactivate(student.id)}
+                    onDelete={() => handleDelete(student.id)}
                   />
                 ))}
               </div>
@@ -161,14 +155,13 @@ export function TrainersAdminPage() {
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: "'JetBrains Mono', monospace", letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
                   Inativos ({inactive.length})
                 </div>
-                {inactive.map((trainer) => (
-                  <TrainerRow
-                    key={trainer.id}
-                    trainer={trainer}
-                    studentCount={studentCounts[trainer.id] ?? 0}
+                {inactive.map((student) => (
+                  <StudentRow
+                    key={student.id}
+                    student={student}
                     inactive
-                    onActivate={() => handleActivate(trainer.id)}
-                    onDelete={() => handleDelete(trainer.id)}
+                    onActivate={() => handleActivate(student.id)}
+                    onDelete={() => handleDelete(student.id)}
                   />
                 ))}
               </div>
@@ -180,16 +173,15 @@ export function TrainersAdminPage() {
   )
 }
 
-interface TrainerRowProps {
-  trainer: UserProfile
-  studentCount: number
+interface StudentRowProps {
+  student: UserProfile
   inactive?: boolean
   onDeactivate?: () => void
   onActivate?: () => void
   onDelete: () => void
 }
 
-function TrainerRow({ trainer, studentCount, inactive, onDeactivate, onActivate, onDelete }: TrainerRowProps) {
+function StudentRow({ student, inactive, onDeactivate, onActivate, onDelete }: StudentRowProps) {
   return (
     <div
       className="card"
@@ -209,14 +201,14 @@ function TrainerRow({ trainer, studentCount, inactive, onDeactivate, onActivate,
           fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: 16,
           color: inactive ? 'var(--text-dim)' : 'var(--accent)',
         }}>
-          {trainer.full_name.charAt(0).toUpperCase()}
+          {student.full_name.charAt(0).toUpperCase()}
         </div>
         <div>
           <div style={{ fontWeight: 600, fontSize: 14, color: inactive ? 'var(--text-dim)' : 'var(--text)' }}>
-            {trainer.full_name}
+            {student.full_name}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-            {trainer.email} · {studentCount} aluno(s)
+            {student.email}
             {inactive && <span style={{ marginLeft: 8, color: 'var(--danger)', fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>INATIVO</span>}
           </div>
         </div>

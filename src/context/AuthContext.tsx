@@ -39,7 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single()
-    if (!error && data) setProfile(data as UserProfile)
+    if (!error && data) {
+      if ((data as UserProfile).is_active === false) {
+        // Conta desativada — faz logout automaticamente
+        await supabase.auth.signOut()
+        return
+      }
+      setProfile(data as UserProfile)
+    }
     setLoading(false)
   }
 

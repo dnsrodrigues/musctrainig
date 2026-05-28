@@ -24,6 +24,7 @@ export function LoginPage() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const [errorMessage, setErrorMessage] = useState('')
+  const [showPw, setShowPw] = useState(false)
 
   const {
     register,
@@ -152,13 +153,25 @@ export function LoginPage() {
 
             <div>
               <div className="label-sm" style={{ marginBottom: 6 }}>Senha</div>
-              <input
-                type="password"
-                className="input"
-                placeholder="••••••••••"
-                autoComplete="current-password"
-                {...register('password')}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  className="input"
+                  placeholder="••••••••••"
+                  autoComplete="current-password"
+                  style={{ paddingRight: 40 }}
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? 'Ocultar senha' : 'Mostrar senha'}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 4, display: 'flex', alignItems: 'center' }}
+                >
+                  <Icon name={showPw ? 'eyeOff' : 'eye'} size={16} />
+                </button>
+              </div>
               {errors.password && (
                 <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4, letterSpacing: '0.04em' }}>
                   ⚠ {errors.password.message}

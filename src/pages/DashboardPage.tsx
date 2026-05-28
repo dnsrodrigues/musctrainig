@@ -45,7 +45,8 @@ function formatTodayHeader(): string {
 // ─── Página ──────────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { profile, isAdmin } = useAuth()
+  const { profile, isAdmin, isManager, trainerMode } = useAuth()
+  const showAdminView = isManager && trainerMode === 'gestao'
   const navigate = useNavigate()
 
   const [workouts, setWorkouts] = useState<Workout[]>([])
@@ -63,12 +64,12 @@ export function DashboardPage() {
     if (!profile?.id) return
     setLoading(true)
     Promise.all([
-      isAdmin ? Promise.resolve([] as Workout[]) : getMyWorkouts(profile.id),
-      isAdmin ? Promise.resolve([] as WorkoutLog[]) : getWorkoutHistory(profile.id),
-      isAdmin ? Promise.resolve({ current: 0, longest: 0 }) : getCurrentStreak(profile.id),
-      isAdmin ? Promise.resolve(0) : getPersonalRecordsThisMonth(profile.id),
-      isAdmin ? Promise.resolve({ thisWeek: 0, lastWeek: 0 }) : getVolumeLastWeek(profile.id),
-      isAdmin ? Promise.resolve(null as number | null) : getAverageSessionDuration(profile.id),
+      showAdminView ? Promise.resolve([] as Workout[]) : getMyWorkouts(profile.id),
+      showAdminView ? Promise.resolve([] as WorkoutLog[]) : getWorkoutHistory(profile.id),
+      showAdminView ? Promise.resolve({ current: 0, longest: 0 }) : getCurrentStreak(profile.id),
+      showAdminView ? Promise.resolve(0) : getPersonalRecordsThisMonth(profile.id),
+      showAdminView ? Promise.resolve({ thisWeek: 0, lastWeek: 0 }) : getVolumeLastWeek(profile.id),
+      showAdminView ? Promise.resolve(null as number | null) : getAverageSessionDuration(profile.id),
     ])
       .then(([w, h, str, prs, vol, avgDur]) => {
         setWorkouts(w)
@@ -79,7 +80,7 @@ export function DashboardPage() {
         setAvgDuration(avgDur)
       })
       .finally(() => setLoading(false))
-  }, [profile?.id, isAdmin])
+  }, [profile?.id, showAdminView])
 
   const todayWorkout = workouts.find((w) => w.week_days.includes(todayKey))
 
@@ -102,7 +103,7 @@ export function DashboardPage() {
         title={`${getGreeting()}, ${firstName.toUpperCase()}`}
         actions={
           <>
-            {!isAdmin && todayWorkout && (
+            {!showAdminView && todayWorkout && (
               <button
                 className="btn primary"
                 onClick={() => navigate(`/workouts/${todayWorkout.id}/session`)}
@@ -110,7 +111,7 @@ export function DashboardPage() {
                 <Icon name="play" size={12} /> Iniciar treino
               </button>
             )}
-            {isAdmin && (
+            {showAdminView && (
               <button className="btn primary" onClick={() => navigate('/admin/workouts/new')}>
                 <Icon name="plus" size={12} /> Nova ficha
               </button>
@@ -121,7 +122,7 @@ export function DashboardPage() {
 
       <div className="content">
         {/* ════════ ADMIN: visão simplificada ════════ */}
-        {isAdmin && (
+        {showAdminView && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -143,7 +144,7 @@ export function DashboardPage() {
         )}
 
         {/* ════════ ALUNO: hero + stats ════════ */}
-        {!isAdmin && (
+        {!showAdminView && (
           <>
             <div className="forja-dash-grid">
               {/* Hero — treino de hoje */}

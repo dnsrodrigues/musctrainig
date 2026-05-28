@@ -25,6 +25,7 @@ function gestaoLinks(isSuperAdmin: boolean): NavLink[] {
   const links: NavLink[] = [
     { to: '/dashboard', label: 'Hoje', icon: 'home' },
     { to: '/admin/workouts', label: 'Fichas', icon: 'edit', matches: (p) => p.startsWith('/admin/workouts') },
+    { to: '/admin/students', label: 'Alunos', icon: 'user', matches: (p) => p.startsWith('/admin/students') },
   ]
   if (isSuperAdmin) {
     links.push({

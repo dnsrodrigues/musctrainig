@@ -6,6 +6,7 @@ import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { updateProfile, uploadAvatar } from '../services/profile.service'
+import { supabase } from '../lib/supabase'
 import { Topbar } from '../components/layout/Topbar'
 import { Icon } from '../components/ui/Icon'
 import { AvatarCropModal } from '../components/ui/AvatarCropModal'
@@ -17,6 +18,16 @@ const toOptionalNumber = (val: unknown) => {
   const n = Number(val)
   return isNaN(n) ? undefined : n
 }
+
+const passwordSchema = z.object({
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: 'As senhas não coincidem',
+  path: ['confirmPassword'],
+})
+
+type PasswordFormData = z.infer<typeof passwordSchema>
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(80, 'Nome muito longo'),
@@ -70,6 +81,33 @@ export function ProfilePage() {
   function handleCropClose() {
     if (cropSrc) URL.revokeObjectURL(cropSrc)
     setCropSrc(null)
+  }
+
+  const [pwStatus, setPwStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [pwError, setPwError] = useState('')
+  const [showPw, setShowPw] = useState(false)
+  const [showConfirmPw, setShowConfirmPw] = useState(false)
+
+  const {
+    register: registerPw,
+    handleSubmit: handleSubmitPw,
+    formState: { errors: pwErrors, isSubmitting: isPwSubmitting },
+    reset: resetPw,
+  } = useForm<PasswordFormData>({ resolver: zodResolver(passwordSchema) })
+
+  async function onPasswordSubmit(data: PasswordFormData) {
+    setPwStatus('idle')
+    setPwError('')
+    try {
+      const { error } = await supabase.auth.updateUser({ password: data.password })
+      if (error) throw error
+      setPwStatus('success')
+      resetPw()
+      setTimeout(() => setPwStatus('idle'), 3000)
+    } catch (err) {
+      setPwStatus('error')
+      setPwError(err instanceof Error ? err.message : 'Erro ao atualizar senha')
+    }
   }
 
   const {
@@ -353,6 +391,54 @@ export function ProfilePage() {
                 rows={3}
                 {...register('goal')}
               />
+            </Field>
+          </div>
+        </motion.form>
+
+        {/* SEGURANÇA — redefinir senha */}
+        <motion.form
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.16 }}
+          onSubmit={handleSubmitPw(onPasswordSubmit)}
+          className="card"
+          noValidate
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+            <h2 className="card-title">SEGURANÇA</h2>
+            <button type="submit" className="btn primary" disabled={isPwSubmitting}>
+              <Icon name="check" size={14} stroke={2.5} />
+              {isPwSubmitting ? 'Salvando...' : 'Atualizar Senha'}
+            </button>
+          </div>
+
+          {pwStatus === 'success' && (
+            <div className="chip success" style={{ marginBottom: 16, padding: '6px 12px' }}>
+              ✓ Senha atualizada com sucesso
+            </div>
+          )}
+          {pwStatus === 'error' && (
+            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(255,61,85,0.08)', border: '1px solid rgba(255,61,85,0.25)', borderRadius: 'var(--r-2)', color: 'var(--danger)', fontSize: 12 }}>
+              ⚠ {pwError || 'Erro ao atualizar senha'}
+            </div>
+          )}
+
+          <div className="forja-profile-grid">
+            <Field label="Nova senha" error={pwErrors.password?.message}>
+              <div style={{ position: 'relative' }}>
+                <input className="input" type={showPw ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••" style={{ paddingRight: 40 }} {...registerPw('password')} />
+                <button type="button" tabIndex={-1} onClick={() => setShowPw((v) => !v)} aria-label={showPw ? 'Ocultar senha' : 'Mostrar senha'} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                  <Icon name={showPw ? 'eyeOff' : 'eye'} size={16} />
+                </button>
+              </div>
+            </Field>
+            <Field label="Confirmar nova senha" error={pwErrors.confirmPassword?.message}>
+              <div style={{ position: 'relative' }}>
+                <input className="input" type={showConfirmPw ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••" style={{ paddingRight: 40 }} {...registerPw('confirmPassword')} />
+                <button type="button" tabIndex={-1} onClick={() => setShowConfirmPw((v) => !v)} aria-label={showConfirmPw ? 'Ocultar senha' : 'Mostrar senha'} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 4, display: 'flex', alignItems: 'center' }}>
+                  <Icon name={showConfirmPw ? 'eyeOff' : 'eye'} size={16} />
+                </button>
+              </div>
             </Field>
           </div>
         </motion.form>

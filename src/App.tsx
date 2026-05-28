@@ -18,6 +18,8 @@ import { WorkoutsAdminPage } from './pages/admin/WorkoutsAdminPage'
 import { WorkoutFormPage } from './pages/admin/WorkoutFormPage'
 import { TrainersAdminPage } from './pages/admin/TrainersAdminPage'
 import { TrainerFormPage } from './pages/admin/TrainerFormPage'
+import { StudentsAdminPage } from './pages/admin/StudentsAdminPage'
+import { StudentFormPage } from './pages/admin/StudentFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
 function App() {
@@ -55,6 +57,8 @@ function App() {
                   <Route path="/admin/workouts/:id/edit" element={<WorkoutFormPage />} />
                   <Route path="/admin/trainers" element={<TrainersAdminPage />} />
                   <Route path="/admin/trainers/new" element={<TrainerFormPage />} />
+                  <Route path="/admin/students" element={<StudentsAdminPage />} />
+                  <Route path="/admin/students/new" element={<StudentFormPage />} />
                 </Route>
 
               </Route>

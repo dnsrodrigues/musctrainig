@@ -27,6 +27,8 @@ export type IconName =
   | 'trending'
   | 'x'
   | 'hash'
+  | 'eye'
+  | 'eyeOff'
 
 const PATHS: Record<IconName, ReactNode> = {
   home: <path d="M3 11l9-8 9 8M5 9.5V21h14V9.5" />,
@@ -131,6 +133,18 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   x: <path d="M18 6L6 18M6 6l12 12" />,
   hash: <path d="M9 4l-2 16M17 4l-2 16M4 9h16M3 15h16" />,
+  eye: (
+    <>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <path d="M1 1l22 22" />
+    </>
+  ),
 }
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name' | 'stroke'> {

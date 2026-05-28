@@ -1,7 +1,7 @@
 # MUSCLE TRAINING — Plan.md
 
-**Versão:** 3.0  
-**Atualizado em:** 25 de maio de 2026  
+**Versão:** 3.1  
+**Atualizado em:** 28 de maio de 2026  
 **Status:** Em andamento 🚧
 
 > Este é o documento central de execução do projeto.  
@@ -16,12 +16,13 @@
 | 1 | Fundação (Vite + React + TypeScript + Tailwind) | ✅ Completa |
 | 2 | Banco de dados (Supabase: tabelas, RLS, seed) | ✅ Completa |
 | 3 | Autenticação (login, logout, rotas protegidas) | ✅ Completa |
-| 4 | Perfil do usuário | ✅ Completa |
-| 4.5 | Design System v2 "Nova" (Syne + DM Mono + lime #c8f04a + dark/light) | ✅ Completa |
+| 4 | Perfil do usuário + upload/recorte de foto | ✅ Completa |
+| 4.5 | Design System v3 "Aurora" FORJA (Outfit + JetBrains Mono + azul/roxo + glassmorphism) | ✅ Completa |
 | 5 | Fichas de treino (CRUD admin + visualização aluno) | ✅ Completa |
 | 6 | Execução de treino (séries, timer) | ✅ Completa |
 | 7 | Histórico e progressão (gráficos) | ✅ Completa |
-| 8 | Nutrição + IA (Gemini) | ⏳ Pendente |
+| 7.5 | Melhorias pré-Fase 8 (métricas reais, ícones FORJA, acessibilidade) | ✅ Completa |
+| 8 | Nutrição + IA (Gemini) | ⏳ Próxima |
 | 9 | Painel admin (gestão de alunos) | ⏳ Pendente |
 | 10 | Polish + PWA | ⏳ Pendente |
 | 11 | Deploy (Vercel) | ⏳ Pendente |
@@ -78,17 +79,20 @@ Login/logout via Supabase Auth. `ProtectedRoute` e `AdminRoute` protegem as rota
 ---
 
 ### FASE 4 — Perfil do usuário ✅
-`ProfilePage` com edição de nome, peso, altura, objetivo, peso alvo, foto. Serviço em `profile.service.ts`.
+`ProfilePage` com edição de nome, peso, altura, objetivo, peso alvo, foto. Serviço em `profile.service.ts`.  
+**Adicionado (28/05):** upload e recorte de foto de perfil diretamente no app — crop circular, imagem salva no Supabase Storage.
 
 ---
 
-### FASE 4.5 — Design System v2 "Nova" ✅
-- **Tipografia:** Syne 800 (display) + DM Mono 300 (mono/corpo)
-- **Cor primária:** Verde-limão `#c8f04a` (mapeado como `orange-500` no Tailwind)
-- **Tema:** Dark (`#05050a` bg) + Light (`#f5f4ee` bg) via `[data-theme]` no `<html>`
-- **Toggle:** `ThemeSwitcher` no header — armazena preferência em `localStorage`
-- **Variáveis CSS:** todas em `src/index.css` — `var(--accent)`, `var(--fg)`, `var(--surface)`, etc.
-- **Efeitos:** noise texture (`body::before`), orb glow (`body::after`), skeleton shimmer
+### FASE 4.5 — Design System v3 "Aurora" (FORJA) ✅
+Redesign completo aplicado a todas as páginas (login, dashboard, fichas, execução, histórico, perfil, admin).
+- **Tipografia:** Outfit 800 (display/títulos) + JetBrains Mono 400 (labels/mono)
+- **Paleta dark:** fundo `#06071a`, superfície `#0c0e28`, acento azul `#6c8ef7`, acento roxo `#c44fe0`
+- **Paleta light:** fundo `#f0f1ff`, superfície `#e6e8ff`, acento `#3d5ee8`
+- **Tema:** Dark (padrão) + Light via `[data-theme]` no `<html>` — salvo em `localStorage`
+- **Variáveis CSS:** todas em `src/index.css` — `var(--accent)`, `var(--accent-2)`, `var(--fg)`, etc.
+- **Efeitos:** `.glass-card` (glassmorphism), `.glow-border` (conic-gradient animado), `.gradient-text`, shader WebGL no Login (Three.js)
+- **Ícones:** SVG próprios FORJA — Lucide React completamente removido
 
 ---
 
@@ -386,18 +390,31 @@ Cada card mostra estado vazio se sem dados.
 ---
 
 **Critério de conclusão:**
-- [ ] Aluno vê lista de sessões em `/historico`
-- [ ] Aluno abre detalhe de sessão com todas as séries
-- [ ] Gráfico de evolução de carga funciona para pelo menos um exercício
-- [ ] Gráfico de frequência semanal exibe dados reais
-- [ ] Aluno registra peso e vê gráfico de evolução
-- [ ] Aluno registra medidas corporais
-- [ ] Cards de resumo no Dashboard com dados reais
-- [ ] Build sem erros de TypeScript
+- [x] Aluno vê lista de sessões em `/historico`
+- [x] Aluno abre detalhe de sessão com todas as séries
+- [x] Gráfico de evolução de carga funciona para pelo menos um exercício
+- [x] Gráfico de frequência semanal exibe dados reais
+- [x] Aluno registra peso e vê gráfico de evolução
+- [x] Aluno registra medidas corporais
+- [x] Cards de resumo no Dashboard com dados reais
+- [x] Build sem erros de TypeScript
 
 ---
 
-### FASE 8 — Nutrição + IA ⏳
+### FASE 7.5 — Melhorias pré-Fase 8 ✅
+**Spec:** [2026-05-26-melhorias-pre-fase-8-design.md](docs/superpowers/specs/2026-05-26-melhorias-pre-fase-8-design.md)
+
+**O que foi entregue:**
+- **Métricas reais no Dashboard:** streak de treinos, PRs do mês, volume da semana, tempo médio de sessão — 4 novas funções em `history.service.ts`
+- **Migração de ícones:** todos os ícones migrados para o Design System FORJA (SVG próprios); Lucide React removido do projeto
+- **Acessibilidade básica:** `role=dialog` em todos os modais, `focus-visible`, skip link no layout, fechar modal com tecla Esc
+- **Upload de foto de perfil:** crop circular, preview antes de salvar, imagem no Supabase Storage
+- **Shader WebGL no Login:** fundo animado com Three.js (efeito visual único)
+- **Build limpo:** todos os erros de TypeScript corrigidos
+
+---
+
+### FASE 8 — Nutrição + IA ⏳ ← PRÓXIMA
 **Complexidade:** 🔴 Complexa → iniciar com `/brainstorming`
 
 **O que entrega:** Diário alimentar com análise automática por Google Gemini.
@@ -481,11 +498,11 @@ src/pages/admin/ExerciseLibraryPage.tsx
 ## Ordem de execução
 
 ```
-✅2 → ✅4 → ✅4.5 → ✅5 → 6 → 7 → 8 → 9 → 10 → 11
+✅1 → ✅2 → ✅3 → ✅4 → ✅4.5 → ✅5 → ✅6 → ✅7 → ✅7.5 → 8 → 9 → 10 → 11
 ```
 
 > A partir da fase 6, seguir a sequência — cada fase depende da anterior.
 
 ---
 
-*Atualizado por Denis Rodrigues em 25/05/2026*
+*Atualizado por Denis Rodrigues em 28/05/2026*

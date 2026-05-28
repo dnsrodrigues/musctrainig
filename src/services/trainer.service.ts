@@ -6,7 +6,6 @@ export async function getTrainers(): Promise<UserProfile[]> {
     .from('profiles')
     .select('*')
     .eq('role', 'trainer')
-    .eq('is_active', true)
     .order('full_name')
   if (error) throw error
   return data as UserProfile[]
@@ -17,7 +16,17 @@ export async function getTrainerStudents(trainerId: string): Promise<UserProfile
     .from('profiles')
     .select('*')
     .eq('trainer_id', trainerId)
-    .eq('is_active', true)
+    .eq('role', 'user')
+    .order('full_name')
+  if (error) throw error
+  return data as UserProfile[]
+}
+
+export async function getAllStudents(): Promise<UserProfile[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('role', 'user')
     .order('full_name')
   if (error) throw error
   return data as UserProfile[]
@@ -36,5 +45,21 @@ export async function deactivateTrainer(trainerId: string): Promise<void> {
     .from('profiles')
     .update({ is_active: false })
     .eq('id', trainerId)
+  if (error) throw error
+}
+
+export async function activateProfile(profileId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_active: true })
+    .eq('id', profileId)
+  if (error) throw error
+}
+
+export async function deactivateStudent(studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_active: false })
+    .eq('id', studentId)
   if (error) throw error
 }

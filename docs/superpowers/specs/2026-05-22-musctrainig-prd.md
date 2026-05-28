@@ -1,8 +1,8 @@
 # MUSCLE TRAINING — Documento de Requisitos do Produto (PRD)
 
-**Versão:** 1.2  
+**Versão:** 1.3  
 **Criado em:** 22 de maio de 2026  
-**Atualizado em:** 25 de maio de 2026  
+**Atualizado em:** 28 de maio de 2026  
 **Autor:** Denis Rodrigues  
 **Status:** Em execução 🚧
 
@@ -15,6 +15,7 @@
 | 1.0 | 22/05/2026 | Documento inicial aprovado |
 | 1.1 | 23/05/2026 | Design system v2 "Nova" aplicado; tema dark/light adicionado |
 | 1.2 | 25/05/2026 | Fase 5 (Fichas de Treino) concluída; modelo de dados atualizado |
+| 1.3 | 28/05/2026 | Fases 6 e 7 concluídas; Design System migrado para v3 "Aurora" (FORJA); upload de foto de perfil; métricas reais no Dashboard; acessibilidade básica; remoção do Lucide React |
 
 ---
 
@@ -62,6 +63,7 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 
 ### 3.2 Perfil do Usuário ✅
 - Nome completo, e-mail, foto de perfil
+- **Upload e recorte de foto de perfil** diretamente no app (crop circular, salvo no Supabase Storage)
 - Dados físicos: peso atual, altura, data de nascimento, gênero
 - Objetivo pessoal (campo de texto livre)
 - Peso alvo
@@ -86,7 +88,7 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 - **Visão do aluno:** ficha do dia em destaque (detectada pelo dia da semana) + lista das outras fichas
 - Admin pode editar e desativar fichas (soft delete: `is_active = false`)
 
-### 3.5 Registro de Treino (Execução) ⏳ Fase 6
+### 3.5 Registro de Treino (Execução) ✅
 - Aluno seleciona uma ficha para treinar
 - Interface de treino ativa: lista de exercícios com campos para preencher
 - Para cada série: registrar repetições realizadas e carga usada
@@ -95,13 +97,13 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 - Ao finalizar: registrar dificuldade percebida (Fácil / Médio / Difícil / Destruidor) e observações
 - Duração total calculada automaticamente
 
-### 3.6 Histórico e Progressão ⏳ Fase 7
+### 3.6 Histórico e Progressão ✅
 - Lista de todas as sessões realizadas com data, duração e dificuldade
 - Detalhe de cada sessão: exercícios com cargas e repetições registradas
 - Gráfico de evolução de carga por exercício ao longo do tempo
 - Gráfico de frequência de treinos (por semana/mês)
 
-### 3.7 Peso e Medidas Corporais ⏳ Fase 7
+### 3.7 Peso e Medidas Corporais ✅
 - Registro de peso com data (histórico completo)
 - Gráfico de evolução do peso
 - Registro de medidas: cintura, quadril, abdômen, coxa, braço, peitoral, panturrilha
@@ -157,12 +159,12 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 | Camada | Tecnologia |
 |--------|-----------|
 | Frontend | React 19 + TypeScript + Vite 6 |
-| Estilo | Tailwind CSS v4 + Design System v2 "Nova" |
+| Estilo | Tailwind CSS v4 + Design System v3 "Aurora" (FORJA) |
 | Roteamento | React Router v7 |
-| Animações | Motion (Framer Motion) v11 |
+| Animações | Motion (Framer Motion) v11 + Three.js (shader no Login) |
 | Formulários | React Hook Form + Zod |
-| Gráficos | Recharts (Fase 7) |
-| Ícones | Lucide React |
+| Gráficos | Recharts ✅ |
+| Ícones | SVG próprios do Design System FORJA (Lucide React removido) |
 | Backend/DB | Supabase (PostgreSQL + Auth + Storage) |
 | IA | Google Gemini API (Fase 8) |
 | Hospedagem | Vercel (Fase 11) |
@@ -189,13 +191,15 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 
 ## 7. Design e Tema Visual
 
-### Design System v2 "Nova" ✅
-- **Paleta dark:** fundo `#05050a`, superfície `#0e0e16`, acento `#c8f04a` (verde-limão)
-- **Paleta light:** fundo `#f5f4ee`, superfície `#eceae2`, acento `#5a9400`
+### Design System v3 "Aurora" (FORJA) ✅
+- **Inspiração:** glassmorphism cósmico — fundo navy profundo com blobs radiais azul/roxo
+- **Paleta dark:** fundo `#06071a`, superfície `#0c0e28`, acento azul `#6c8ef7`, acento roxo `#c44fe0`
+- **Paleta light:** fundo `#f0f1ff`, superfície `#e6e8ff`, acento `#3d5ee8`
 - **Tema:** Dark (padrão) com toggle para Light — preferência salva em `localStorage`
-- **Tipografia:** Syne 800 (display/títulos) + DM Mono 300 (corpo/mono/labels)
-- **Linguagem visual:** editorial, técnico, atlético — comentários de código `// assim` como elementos de UI
-- **Efeitos:** noise texture no background, orb glow animado com a cor de acento
+- **Tipografia:** Outfit 800 (display/títulos) + JetBrains Mono 400 (labels/mono)
+- **Efeitos:** borda animada conic-gradient girando (`.glow-border`), cards glassmorphism (`.glass-card`), texto com gradiente (`.gradient-text`), shader WebGL no Login (Three.js)
+- **Ícones:** SVG próprios do Design System FORJA — sem dependência de biblioteca externa
+- **Acessibilidade:** `role=dialog` nos modais, `focus-visible`, skip link, fechar com Esc
 
 ---
 
@@ -203,9 +207,9 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 
 1. ✅ Admin consegue criar uma ficha de treino e atribuir a um aluno
 2. ✅ Aluno consegue fazer login e visualizar sua ficha
-3. ⏳ Aluno consegue registrar um treino completo (Fase 6)
-4. ⏳ Histórico de treinos é exibido corretamente (Fase 7)
-5. ⏳ Aluno consegue registrar peso e ver o gráfico de evolução (Fase 7)
+3. ✅ Aluno consegue registrar um treino completo (Fase 6)
+4. ✅ Histórico de treinos é exibido corretamente (Fase 7)
+5. ✅ Aluno consegue registrar peso e ver o gráfico de evolução (Fase 7)
 6. ⏳ App é instalável como PWA no celular (Fase 10)
 
 ---
@@ -221,4 +225,4 @@ Um app web acessível pelo celular (PWA instalável) que digitaliza todo o proce
 
 ---
 
-*Documento criado por Denis Rodrigues em 22/05/2026 — última atualização: 25/05/2026*
+*Documento criado por Denis Rodrigues em 22/05/2026 — última atualização: 28/05/2026*
