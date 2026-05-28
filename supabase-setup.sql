@@ -427,3 +427,91 @@ CREATE POLICY "workouts: usuário vê as suas fichas"
   ON workouts FOR SELECT
   USING (user_id = auth.uid() OR is_template = true);
 
+-- =============================================
+-- PATCH v4 — Roles Multi-Trainer + Trainer como Aluno
+-- Executar no painel SQL do Supabase (SQL Editor)
+-- Spec: docs/superpowers/specs/2026-05-28-roles-multitrainer-design.md
+-- =============================================
+
+-- 1. Adiciona coluna de vínculo trainer → aluno
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS trainer_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+
+-- 2. Expande os valores permitidos para o campo role
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
+  CHECK (role IN ('super_admin', 'trainer', 'user'));
+
+-- 3. Migra o admin existente para super_admin
+UPDATE profiles SET role = 'super_admin' WHERE role = 'admin';
+
+-- 4. Funções auxiliares para as novas políticas RLS
+CREATE OR REPLACE FUNCTION is_super_admin()
+RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'super_admin'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION is_trainer_or_above()
+RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('super_admin', 'trainer')
+  );
+$$;
+
+-- 5. Atualiza RLS de profiles
+DROP POLICY IF EXISTS "usuários podem ver o próprio perfil" ON profiles;
+DROP POLICY IF EXISTS "admin vê todos os perfis" ON profiles;
+
+CREATE POLICY "profiles: super_admin vê todos" ON profiles FOR SELECT
+  USING (is_super_admin());
+
+CREATE POLICY "profiles: trainer vê seus alunos" ON profiles FOR SELECT
+  USING (trainer_id = auth.uid() OR id = auth.uid());
+
+CREATE POLICY "profiles: usuário vê o próprio" ON profiles FOR SELECT
+  USING (id = auth.uid());
+
+-- 6. Atualiza RLS de workouts
+DROP POLICY IF EXISTS "admin gerencia todas as fichas" ON workouts;
+
+CREATE POLICY "workouts: super_admin gerencia tudo" ON workouts FOR ALL
+  USING (is_super_admin());
+
+CREATE POLICY "workouts: trainer acessa os seus" ON workouts FOR ALL
+  USING (
+    is_template = true
+    OR user_id = auth.uid()
+    OR user_id IN (SELECT id FROM profiles WHERE trainer_id = auth.uid())
+  );
+
+-- 7. Atualiza RLS de workout_logs
+DROP POLICY IF EXISTS "admin vê todos os logs" ON workout_logs;
+
+CREATE POLICY "workout_logs: trainer e admin acessam os seus" ON workout_logs FOR ALL
+  USING (
+    user_id = auth.uid()
+    OR user_id IN (SELECT id FROM profiles WHERE trainer_id = auth.uid())
+    OR is_super_admin()
+  );
+
+-- 8. Atualiza RLS de user_weights e body_measurements
+DROP POLICY IF EXISTS "admin vê todos os pesos" ON user_weights;
+DROP POLICY IF EXISTS "admin vê todas as medidas" ON body_measurements;
+
+CREATE POLICY "user_weights: trainer vê seus alunos" ON user_weights FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR user_id IN (SELECT id FROM profiles WHERE trainer_id = auth.uid())
+    OR is_super_admin()
+  );
+
+CREATE POLICY "body_measurements: trainer vê seus alunos" ON body_measurements FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR user_id IN (SELECT id FROM profiles WHERE trainer_id = auth.uid())
+    OR is_super_admin()
+  );
+
+
