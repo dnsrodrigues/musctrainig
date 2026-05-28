@@ -101,6 +101,7 @@ export function ProfilePage() {
     try {
       const { error } = await supabase.auth.updateUser({ password: data.password })
       if (error) throw error
+      await supabase.from('profiles').update({ must_change_password: false }).eq('id', user!.id)
       setPwStatus('success')
       resetPw()
       setTimeout(() => setPwStatus('idle'), 3000)

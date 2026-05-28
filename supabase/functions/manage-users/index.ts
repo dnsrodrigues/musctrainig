@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
-        .update({ role: 'trainer', full_name: fullName, is_active: true })
+        .update({ role: 'trainer', full_name: fullName, is_active: true, must_change_password: true })
         .eq('id', userId)
 
       if (updateError) throw new Error(`Falha ao atualizar perfil: ${updateError.message}`)
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 
       const { error: updateError } = await supabaseAdmin
         .from('profiles')
-        .update({ role: 'user', full_name: fullName, is_active: true, trainer_id: assignedTrainerId })
+        .update({ role: 'user', full_name: fullName, is_active: true, trainer_id: assignedTrainerId, must_change_password: true })
         .eq('id', userId)
 
       if (updateError) throw new Error(`Falha ao atualizar perfil: ${updateError.message}`)
@@ -132,7 +132,7 @@ async function createAuthUser(
 
   const { data: newUser, error } = await admin.auth.admin.createUser({
     email,
-    password: crypto.randomUUID(),
+    password: '123456',
     email_confirm: true,
     user_metadata: { full_name: fullName },
   })

@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
+import { ForcePasswordModal } from './components/ui/ForcePasswordModal'
 import { AdminRoute } from './components/layout/AdminRoute'
 import { AppShell } from './components/layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
@@ -22,11 +23,22 @@ import { StudentsAdminPage } from './pages/admin/StudentsAdminPage'
 import { StudentFormPage } from './pages/admin/StudentFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
+function PasswordGuard({ children }: { children: React.ReactNode }) {
+  const { mustChangePassword, user } = useAuth()
+  return (
+    <>
+      {children}
+      {user && mustChangePassword && <ForcePasswordModal />}
+    </>
+  )
+}
+
 function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
+          <PasswordGuard>
           <Routes>
 
             {/* ── Rota pública (sem shell) ── */}
@@ -68,6 +80,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
 
           </Routes>
+          </PasswordGuard>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

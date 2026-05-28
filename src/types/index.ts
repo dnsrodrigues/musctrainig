@@ -20,6 +20,7 @@ export interface UserProfile {
   goal?: string
   target_weight?: number  // peso alvo em kg
   is_active: boolean
+  must_change_password?: boolean
   created_at: string
   updated_at: string
 }

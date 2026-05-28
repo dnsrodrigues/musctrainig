@@ -14,6 +14,7 @@ interface AuthContextType {
   isSuperAdmin: boolean
   isTrainer: boolean
   isManager: boolean      // true para super_admin e trainer
+  mustChangePassword: boolean
   trainerMode: 'gestao' | 'treino'
   setTrainerMode: (mode: 'gestao' | 'treino') => void
   signIn: (email: string, password: string) => Promise<void>
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isSuperAdmin = profile?.role === 'super_admin'
   const isTrainer = profile?.role === 'trainer'
   const isManager = isSuperAdmin || isTrainer
+  const mustChangePassword = profile?.must_change_password === true
 
   return (
     <AuthContext.Provider value={{
@@ -87,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSuperAdmin,
       isTrainer,
       isManager,
+      mustChangePassword,
       trainerMode,
       setTrainerMode,
       signIn: async (email, password) => {
