@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { motion } from 'motion/react'
 import {
   getTemplates,
@@ -16,6 +17,7 @@ import { WEEK_DAY_SHORT } from '../../types'
 
 export function WorkoutsAdminPage() {
   const navigate = useNavigate()
+  const { isSuperAdmin } = useAuth()
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({})
   const [studentWorkouts, setStudentWorkouts] = useState<WorkoutWithStudent[]>([])
@@ -98,8 +100,8 @@ export function WorkoutsAdminPage() {
   return (
     <>
       <Topbar
-        eyebrow="BIBLIOTECA DO PERSONAL"
-        title="FICHAS DE TREINO"
+        eyebrow={isSuperAdmin ? 'BIBLIOTECA DO PERSONAL' : 'MEUS ALUNOS'}
+        title={isSuperAdmin ? 'FICHAS DE TREINO' : 'FICHAS DOS ALUNOS'}
         actions={
           <button onClick={() => navigate('/admin/workouts/new')} className="btn primary">
             <Icon name="plus" size={14} /> Nova ficha
