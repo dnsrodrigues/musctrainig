@@ -606,11 +606,6 @@ function LayoutA(props: LayoutAProps) {
                 </div>
               </div>
 
-              <ExerciseInstructions
-                description={ex.exercise?.description}
-                videoUrl={ex.exercise?.video_url}
-              />
-
               {/* Última vez / PR / Volume */}
               <div className="forja-treino-stats">
                 <div>
@@ -642,6 +637,12 @@ function LayoutA(props: LayoutAProps) {
             </div>
           </div>
         </div>
+
+        {/* Instruções — fora do overflow:hidden para expandir sem sobrepor */}
+        <ExerciseInstructions
+          description={ex.exercise?.description}
+          videoUrl={ex.exercise?.video_url}
+        />
 
         {/* Séries */}
         <SetList
