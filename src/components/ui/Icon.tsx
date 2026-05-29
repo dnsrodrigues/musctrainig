@@ -29,6 +29,7 @@ export type IconName =
   | 'hash'
   | 'eye'
   | 'eyeOff'
+  | 'chevron'
 
 const PATHS: Record<IconName, ReactNode> = {
   home: <path d="M3 11l9-8 9 8M5 9.5V21h14V9.5" />,
@@ -145,6 +146,7 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M1 1l22 22" />
     </>
   ),
+  chevron: <path d="M6 9l6 6 6-6" />,
 }
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name' | 'stroke'> {

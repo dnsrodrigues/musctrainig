@@ -606,6 +606,11 @@ function LayoutA(props: LayoutAProps) {
                 </div>
               </div>
 
+              <ExerciseInstructions
+                description={ex.exercise?.description}
+                videoUrl={ex.exercise?.video_url}
+              />
+
               {/* Última vez / PR / Volume */}
               <div className="forja-treino-stats">
                 <div>
@@ -770,6 +775,10 @@ function LayoutB(props: LayoutBProps) {
             <h1 className="f-display forja-treino-b-exname">
               {(ex.exercise?.name ?? 'Exercício').toUpperCase()}
             </h1>
+            <ExerciseInstructions
+              description={ex.exercise?.description}
+              videoUrl={ex.exercise?.video_url}
+            />
           </div>
           <div className="forja-treino-b-meta">
             <div>
@@ -1107,6 +1116,113 @@ function SetRow({
           <Icon name="check" size={14} stroke={3} color={isCurrent ? 'var(--accent-fg)' : 'currentColor'} />
         </button>
       )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXERCISE INSTRUCTIONS — toggle descrição + link de vídeo
+// ═══════════════════════════════════════════════════════════════════
+
+function ExerciseInstructions({ description, videoUrl }: { description?: string; videoUrl?: string }) {
+  const [open, setOpen] = useState(false)
+
+  if (!description && !videoUrl) return null
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 5,
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          color: open ? 'var(--accent)' : 'var(--text-faint)',
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 9,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          transition: 'color 0.15s',
+        }}
+      >
+        <Icon
+          name="chevron"
+          size={12}
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+        />
+        Instruções
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="instructions-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div
+              style={{
+                marginTop: 8,
+                padding: '12px 14px',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border)',
+                borderLeft: '2px solid var(--accent)',
+                borderRadius: '0 4px 4px 0',
+              }}
+            >
+              {description && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 11,
+                    color: 'var(--text-dim)',
+                    lineHeight: 1.65,
+                  }}
+                >
+                  {description}
+                </p>
+              )}
+              {videoUrl && (
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: description ? 10 : 0,
+                    color: 'var(--accent)',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 9,
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    textDecoration: 'none',
+                    padding: '5px 10px',
+                    border: '1px solid var(--accent)',
+                    borderRadius: 3,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(212,255,58,0.08)' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' }}
+                >
+                  <Icon name="play" size={10} />
+                  Ver vídeo
+                </a>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

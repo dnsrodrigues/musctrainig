@@ -38,6 +38,7 @@ export function ExerciseSelector({
   const [newName, setNewName] = useState('')
   const [newMuscle, setNewMuscle] = useState<MuscleGroup | ''>('')
   const [newDesc, setNewDesc] = useState('')
+  const [newVideoUrl, setNewVideoUrl] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [createFormErrors, setCreateFormErrors] = useState<{ name?: string; muscle?: string }>({})
@@ -81,6 +82,7 @@ export function ExerciseSelector({
     setNewName(search.trim())
     setNewMuscle('')
     setNewDesc('')
+    setNewVideoUrl('')
     setCreateError(null)
     setCreateFormErrors({})
     setView('create')
@@ -105,6 +107,7 @@ export function ExerciseSelector({
         name: newName,
         muscle_group: newMuscle,
         description: newDesc || undefined,
+        video_url: newVideoUrl || undefined,
         createdBy: profile!.id,
       })
       // Adiciona à lista local e seleciona
@@ -449,6 +452,30 @@ export function ExerciseSelector({
                     color: 'var(--text)',
                     fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
                     outline: 'none', resize: 'vertical',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
+                  onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+                />
+              </div>
+
+              {/* Link de Vídeo (opcional) */}
+              <div>
+                <label style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: 'var(--text-faint)', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                  Link de Vídeo <span style={{ opacity: 0.4 }}>(opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={newVideoUrl}
+                  onChange={(e) => setNewVideoUrl(e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4, padding: '9px 12px',
+                    color: 'var(--text)',
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+                    outline: 'none',
                   }}
                   onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
                   onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}

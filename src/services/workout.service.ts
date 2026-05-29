@@ -352,6 +352,7 @@ export async function createExercise(data: {
   name: string
   muscle_group: string
   description?: string
+  video_url?: string
   createdBy: string
 }): Promise<Exercise> {
   const { data: created, error } = await supabase
@@ -360,6 +361,7 @@ export async function createExercise(data: {
       name: data.name.trim(),
       muscle_group: data.muscle_group,
       description: data.description?.trim() || null,
+      video_url: data.video_url?.trim() || null,
       created_by: data.createdBy,
     })
     .select()
