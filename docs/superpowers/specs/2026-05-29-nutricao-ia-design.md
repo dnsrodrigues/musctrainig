@@ -1,6 +1,7 @@
-# Fase 8 — Nutrição + IA (Gemini)
+# Fase 8 — Nutrição + IA (Groq / Llama)
 
 **Data:** 29 de maio de 2026  
+**Atualizado:** 29 de maio de 2026 — IA trocada de Gemini para Groq (gratuito, sem billing)  
 **Status:** Aprovado ✅  
 **Autor:** Denis Rodrigues
 
@@ -17,6 +18,7 @@ Implementar um diário alimentar onde o aluno descreve livremente o que comeu, a
 | Decisão | Escolha | Motivo |
 |---------|---------|--------|
 | O que a IA faz | Estima macros + dá feedback em texto | Mais prático — aluno não precisa digitar números |
+| Provedor de IA | Groq (llama-3.1-8b-instant) em vez de Gemini | Groq é 100% gratuito sem billing; Gemini exige pré-pagamento no Brasil |
 | Como a IA é chamada | Via Edge Function segura no Supabase | Chave da API nunca exposta no navegador |
 | Revisão antes de salvar | Sim — aluno pode editar os macros estimados | Garante dados confiáveis no histórico |
 | Metas diárias | Calculadas automaticamente pelo perfil | Baseado em Harris-Benedict × objetivo do perfil |
@@ -74,12 +76,13 @@ CREATE POLICY "nutrition_logs: trainer lê seus alunos"
 
 **Arquivo:** `supabase/functions/analyze-meal/index.ts`
 
-**Variável de ambiente necessária no Supabase:** `GEMINI_API_KEY`
+**Variável de ambiente necessária no Supabase:** `GROQ_API_KEY`
+*(Obtida em https://console.groq.com — gratuita, sem cartão)*
 
 **Fluxo:**
 1. Recebe `{ meal_type, description }` no body
 2. Verifica token do usuário (mesma estrutura do `manage-users`)
-3. Chama `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
+3. Chama `https://api.groq.com/openai/v1/chat/completions` com modelo `llama-3.1-8b-instant`
 4. Prompt estruturado para retornar JSON:
 
 ```

@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
     }
     if (!meal_type || !description) throw new Error('meal_type e description são obrigatórios')
 
-    // Chamar Gemini
-    const geminiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!geminiKey) throw new Error('GEMINI_API_KEY não configurada')
+    // Chamar Groq (OpenAI-compatible, 100% gratuito)
+    const groqKey = Deno.env.get('GROQ_API_KEY')
+    if (!groqKey) throw new Error('GROQ_API_KEY não configurada')
 
     const prompt = `Você é um nutricionista especialista em musculação.
 Analise a refeição abaixo e retorne SOMENTE um JSON válido, sem markdown, com este formato exato:
@@ -46,27 +46,29 @@ Analise a refeição abaixo e retorne SOMENTE um JSON válido, sem markdown, com
 Tipo de refeição: ${meal_type}
 Descrição: ${description}`
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${groqKey}`,
       },
-    )
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+      }),
+    })
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.json().catch(() => ({}))
+    if (!groqRes.ok) {
+      const errBody = await groqRes.json().catch(() => ({}))
       const detail = (errBody as any)?.error?.message ?? JSON.stringify(errBody)
-      throw new Error(`Gemini ${geminiRes.status}: ${detail}`)
+      throw new Error(`Groq ${groqRes.status}: ${detail}`)
     }
 
-    const geminiData = await geminiRes.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    const groqData = await groqRes.json()
+    const rawText: string = groqData?.choices?.[0]?.message?.content ?? ''
 
-    // Remove possível markdown ```json ... ``` que o Gemini às vezes retorna
+    // Remove possível markdown ```json ... ``` que o modelo às vezes retorna
     const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
     let result: {
@@ -80,7 +82,6 @@ Descrição: ${description}`
     try {
       result = JSON.parse(cleaned)
     } catch {
-      // Fallback se o Gemini não retornar JSON válido
       result = {
         calories: 0,
         protein_g: 0,
@@ -95,7 +96,6 @@ Descrição: ${description}`
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro desconhecido'
-    // Sempre retorna 200 para que o cliente consiga ler o body com o erro real
     return new Response(
       JSON.stringify({ success: false, error: message }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

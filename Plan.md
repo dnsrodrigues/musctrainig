@@ -22,7 +22,7 @@
 | 6 | Execução de treino (séries, timer) | ✅ Completa |
 | 7 | Histórico e progressão (gráficos) | ✅ Completa |
 | 7.5 | Melhorias pré-Fase 8 (métricas reais, ícones FORJA, acessibilidade) | ✅ Completa |
-| 8 | Nutrição + IA (Gemini) | ✅ Completa |
+| 8 | Nutrição + IA (Groq/Llama) | ✅ Completa |
 | 9 | Painel admin (gestão de alunos) | ⏳ Pendente |
 | 10 | Polish + PWA | ⏳ Pendente |
 | 11 | Deploy (Vercel) | ⏳ Pendente |
@@ -419,7 +419,7 @@ Cada card mostra estado vazio se sem dados.
 
 **O que foi entregue:**
 - **Diário alimentar** (`/nutricao`): anel de calorias + barras de macros, navegação entre dias, lista de refeições
-- **Análise por IA**: Edge Function `analyze-meal` chama Google Gemini → estima calorias + proteína + carbo + gordura + feedback em texto
+- **Análise por IA**: Edge Function `analyze-meal` chama Groq API (llama-3.1-8b-instant) → estima calorias + proteína + carbo + gordura + feedback em texto (Groq é gratuito; Gemini exige billing no Brasil)
 - **Bottom sheet** de registro: chips de tipo → descrição livre → analisar → macros editáveis → salvar
 - **Metas automáticas**: fórmula Harris-Benedict × fator de atividade, ajustada pelo objetivo do perfil (perder/manter/ganhar)
 - **Soft delete**: `is_active = false` ao excluir refeição
