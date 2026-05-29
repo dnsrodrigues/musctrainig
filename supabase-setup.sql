@@ -530,3 +530,21 @@ CREATE POLICY "exercise_library: trainer e admin gerenciam"
   USING (is_trainer_or_above())
   WITH CHECK (is_trainer_or_above());
 
+-- =============================================
+-- PATCH v5 — Nutrição + IA (Fase 8)
+-- =============================================
+
+-- Soft delete em nutrition_logs
+ALTER TABLE nutrition_logs ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+-- RLS: trainer lê logs dos seus alunos
+CREATE POLICY "nutrition_logs: trainer lê seus alunos"
+  ON nutrition_logs FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = nutrition_logs.user_id
+        AND trainer_id = auth.uid()
+    )
+  );
+
